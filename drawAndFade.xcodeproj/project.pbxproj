@@ -240,8 +240,8 @@
 		01B0573E163213150013A327 /* ofxBase3DVideo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxBase3DVideo.h; sourceTree = "<group>"; };
 		01B0573F163213150013A327 /* ofxKinect.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxKinect.cpp; sourceTree = "<group>"; };
 		01B05740163213150013A327 /* ofxKinect.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxKinect.h; sourceTree = "<group>"; };
-		01E4BDEC163329C8003A4BCA /* ofxAudioAnalyzer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxAudioAnalyzer.cpp; sourceTree = SOURCE_ROOT; };
-		01E4BDED163329C8003A4BCA /* ofxAudioAnalyzer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxAudioAnalyzer.h; sourceTree = SOURCE_ROOT; };
+		01E4BDEC163329C8003A4BCA /* ofxAudioAnalyzer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxAudioAnalyzer.cpp; sourceTree = "<group>"; };
+		01E4BDED163329C8003A4BCA /* ofxAudioAnalyzer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxAudioAnalyzer.h; sourceTree = "<group>"; };
 		01F6FD261631D0AA00C5A10B /* GLView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GLView.h; sourceTree = "<group>"; };
 		01F6FD271631D0AA00C5A10B /* GLView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GLView.mm; sourceTree = "<group>"; };
 		01F6FD281631D0AA00C5A10B /* ofxCocoaDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxCocoaDelegate.h; sourceTree = "<group>"; };
@@ -902,8 +902,7 @@
 				01E4BDED163329C8003A4BCA /* ofxAudioAnalyzer.h */,
 				01E4BDEC163329C8003A4BCA /* ofxAudioAnalyzer.cpp */,
 			);
-			name = Audio;
-			path = Application;
+			path = Audio;
 			sourceTree = "<group>";
 		};
 		01F6FD251631D0AA00C5A10B /* ofxCocoaWindow */ = {
