@@ -108,7 +108,7 @@
     NSString *selectedRes = [self.resBox titleOfSelectedItem];
     NSArray *resComponents = [selectedRes componentsSeparatedByString:@" x "];
     int deviceIndex = [[[self.audioDevices objectAtIndex:[self.audioInputBox indexOfSelectedItem]] objectForKey:kAudioDeviceIndex] intValue];
-    ofApplicationSetAudioInputIndex(deviceIndex);
+    ofApplicationSetAudioInputDeviceId(deviceIndex);
     if (resComponents.count != 2){
         // error message
         return;

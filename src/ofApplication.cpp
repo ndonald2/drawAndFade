@@ -2,10 +2,10 @@
 
 #define MAX_LINE_RADIUS    200.0f
 
-static int audioInputIndex = 0;
+static int inputDeviceId = 0;
 
-void ofApplicationSetAudioInputIndex(int index){
-    audioInputIndex = index;
+void ofApplicationSetAudioInputDeviceId(int deviceId){
+    inputDeviceId = deviceId;
 }
 
 //--------------------------------------------------------------
@@ -39,12 +39,11 @@ void ofApplication::setup(){
     blurVelocity = 10;
     
     // audio setup
-    audioInput.listDevices();
-    audioInput.setDeviceID(audioInputIndex);
-    int bufferSize = 256;
-	left.assign(bufferSize, 0.0);
-	right.assign(bufferSize, 0.0);
-    audioInput.setup(this, 0, 2, 44100, bufferSize, 4);
+    ofxAudioAnalyzer::Settings audioSettings;
+    audioSettings.stereo = true;
+    audioSettings.inputDeviceId = inputDeviceId;
+    audioSettings.bufferSize = 512;
+    audioAnalyzer.setup(audioSettings);
     
     // kinect setup
     kinect.setRegistration(true);
@@ -121,7 +120,7 @@ void ofApplication::update(){
         
         float saturation = ofMap(mouseVelocity, 0.0f, 100.0f, 180.0f, 255.0f, true);
         float hue = ((cosf(0.05f*elapsedPhase)+1.0f)/2.0f)*255.0f;
-        float radius = ofMap(smoothedVol, 0.0f, 0.25f, 2.0f, MAX_LINE_RADIUS, true);
+        float radius = 5.0f; //ofMap(smoothedVol, 0.0f, 0.25f, 2.0f, MAX_LINE_RADIUS, true);
         float angle = M_PI*2.0f*ofRandomf();
         
         ofSetColor(ofColor::fromHsb(hue, saturation, 255.0f));
@@ -160,7 +159,6 @@ void ofApplication::update(){
     blurShader.setUniformTexture("texSampler", mainTex, 1);
     mainTex.draw(0,0);
     blurShader.end();
-    
     mainFbo.end();
 }
 
@@ -169,10 +167,15 @@ void ofApplication::draw(){
     
     glDisable(GL_DEPTH_TEST);
     
-    float bright = ofMap(smoothedVol, 0.0f, 0.3f, 20.0f, 160.0f, true);
+    float energy = audioAnalyzer.getSignalEnergy();
+    float bright = ofMap(energy, 0.0f, 3.0f, 20.0f, 160.0f, true);
     ofBackgroundGradient(ofColor::fromHsb(180, 80, bright), ofColor(0,0,0));
     ofSetColor(255, 255, 255);
     mainFbo.draw(0, 0);
+    
+    stringstream ss;
+    ss << "Audio Signal Energy: " << energy;
+    ofDrawBitmapString(ss.str(), 20,20);
 //    blurShader.begin();
 //    blurShader.setUniformTexture("texSampler", mainFbo.getTextureReference(), 1);
 //    mainFbo.draw(0, 0);
@@ -180,28 +183,6 @@ void ofApplication::draw(){
 
 }
 
-#pragma mark - Audio 
-
-void ofApplication::audioIn(float * input, int bufferSize, int nChannels)
-{
-    float curVol = 0.0;
-	
-	int numCounted = 0;
-    
-	// peak volume per buffer
-	for (int i = 0; i < bufferSize; i++){
-		left[i]		= input[i*2];
-		right[i]	= input[i*2+1];
-		curVol += left[i] * left[i];
-		curVol += right[i] * right[i];
-		numCounted++;
-	}
-	
-	curVol /= (float)numCounted;
-	
-	smoothedVol *= 0.8;
-	smoothedVol += 0.2 * curVol;
-}
 
 #pragma mark - Inputs
 

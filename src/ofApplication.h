@@ -3,10 +3,11 @@
 #include "ofMain.h"
 #include "ofxOpenCv.h"
 #include "ofxKinect.h"
+#include "ofxAudioAnalyzer.h"
 
 #define USE_MOUSE
 
-void ofApplicationSetAudioInputIndex(int index);
+void ofApplicationSetAudioInputDeviceId(int deviceId);
 
 class ofApplication : public ofBaseApp{
 	public:
@@ -24,9 +25,6 @@ class ofApplication : public ofBaseApp{
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
     
-        void audioIn(float * input, int bufferSize, int nChannels);
-
-    
     private:
     
         ofFbo           mainFbo;
@@ -41,10 +39,7 @@ class ofApplication : public ofBaseApp{
         ofPoint blurVelocity;
     
         // audio
-        ofSoundStream audioInput;
-        vector<float> left;
-        vector<float> right;
-        float smoothedVol;
+        ofxAudioAnalyzer audioAnalyzer;
     
         // kinect
         ofxKinect   kinect;

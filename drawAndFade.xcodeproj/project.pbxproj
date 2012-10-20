@@ -15,6 +15,13 @@
 		012D5645162CF133002ED710 /* ofxCvHaarFinder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 012D5638162CF133002ED710 /* ofxCvHaarFinder.cpp */; };
 		012D5646162CF133002ED710 /* ofxCvImage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 012D563A162CF133002ED710 /* ofxCvImage.cpp */; };
 		012D5647162CF133002ED710 /* ofxCvShortImage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 012D563D162CF133002ED710 /* ofxCvShortImage.cpp */; };
+		01655765163332F10055185A /* fftw3f.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0165573B163332F10055185A /* fftw3f.a */; };
+		01655766163332F10055185A /* kiss_fft.c in Sources */ = {isa = PBXBuildFile; fileRef = 01655740163332F10055185A /* kiss_fft.c */; };
+		01655767163332F10055185A /* kiss_fftr.c in Sources */ = {isa = PBXBuildFile; fileRef = 01655742163332F10055185A /* kiss_fftr.c */; };
+		01655768163332F10055185A /* ofxEasyFft.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 01655746163332F10055185A /* ofxEasyFft.cpp */; };
+		01655769163332F10055185A /* ofxFft.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 01655748163332F10055185A /* ofxFft.cpp */; };
+		0165576A163332F10055185A /* ofxFftBasic.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0165574A163332F10055185A /* ofxFftBasic.cpp */; };
+		0165576B163332F10055185A /* ofxFftw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0165574C163332F10055185A /* ofxFftw.cpp */; };
 		01B05749163213160013A327 /* cameras.c in Sources */ = {isa = PBXBuildFile; fileRef = 01B056EC163213150013A327 /* cameras.c */; };
 		01B0574A163213160013A327 /* core.c in Sources */ = {isa = PBXBuildFile; fileRef = 01B056EF163213150013A327 /* core.c */; };
 		01B0574B163213160013A327 /* freenect.lib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01B056F5163213150013A327 /* freenect.lib */; };
@@ -186,6 +193,23 @@
 		012D563F162CF133002ED710 /* ofxOpenCv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxOpenCv.h; sourceTree = "<group>"; };
 		012D5658162D02E2002ED710 /* blur.frag */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.glsl; path = blur.frag; sourceTree = "<group>"; };
 		012D5659162D02E2002ED710 /* blur.vert */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.glsl; path = blur.vert; sourceTree = "<group>"; };
+		01655737163332F10055185A /* fftw3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fftw3.h; sourceTree = "<group>"; };
+		01655739163332F10055185A /* .gitignore */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
+		0165573B163332F10055185A /* fftw3f.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = fftw3f.a; sourceTree = "<group>"; };
+		0165573D163332F10055185A /* libfftw3f-3.dll */ = {isa = PBXFileReference; lastKnownFileType = file; path = "libfftw3f-3.dll"; sourceTree = "<group>"; };
+		0165573F163332F10055185A /* _kiss_fft_guts.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = _kiss_fft_guts.h; sourceTree = "<group>"; };
+		01655740163332F10055185A /* kiss_fft.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = kiss_fft.c; sourceTree = "<group>"; };
+		01655741163332F10055185A /* kiss_fft.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = kiss_fft.h; sourceTree = "<group>"; };
+		01655742163332F10055185A /* kiss_fftr.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = kiss_fftr.c; sourceTree = "<group>"; };
+		01655743163332F10055185A /* kiss_fftr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = kiss_fftr.h; sourceTree = "<group>"; };
+		01655746163332F10055185A /* ofxEasyFft.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxEasyFft.cpp; sourceTree = "<group>"; };
+		01655747163332F10055185A /* ofxEasyFft.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxEasyFft.h; sourceTree = "<group>"; };
+		01655748163332F10055185A /* ofxFft.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxFft.cpp; sourceTree = "<group>"; };
+		01655749163332F10055185A /* ofxFft.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxFft.h; sourceTree = "<group>"; };
+		0165574A163332F10055185A /* ofxFftBasic.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxFftBasic.cpp; sourceTree = "<group>"; };
+		0165574B163332F10055185A /* ofxFftBasic.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxFftBasic.h; sourceTree = "<group>"; };
+		0165574C163332F10055185A /* ofxFftw.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxFftw.cpp; sourceTree = "<group>"; };
+		0165574D163332F10055185A /* ofxFftw.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxFftw.h; sourceTree = "<group>"; };
 		01B056EB163213150013A327 /* APACHE20 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = APACHE20; sourceTree = "<group>"; };
 		01B056EC163213150013A327 /* cameras.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cameras.c; sourceTree = "<group>"; };
 		01B056ED163213150013A327 /* cameras.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cameras.h; sourceTree = "<group>"; };
@@ -303,6 +327,7 @@
 				012D5640162CF133002ED710 /* opencv.a in Frameworks */,
 				01B0574B163213160013A327 /* freenect.lib in Frameworks */,
 				01B0574F163213160013A327 /* usb-1.0.a in Frameworks */,
+				01655765163332F10055185A /* fftw3f.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -593,6 +618,94 @@
 			);
 			name = shaders;
 			path = bin/data/shaders;
+			sourceTree = "<group>";
+		};
+		0165570D163332F10055185A /* ofxFft */ = {
+			isa = PBXGroup;
+			children = (
+				01655734163332F10055185A /* libs */,
+				01655745163332F10055185A /* src */,
+			);
+			path = ofxFft;
+			sourceTree = "<group>";
+		};
+		01655734163332F10055185A /* libs */ = {
+			isa = PBXGroup;
+			children = (
+				01655735163332F10055185A /* fftw */,
+				0165573E163332F10055185A /* kiss */,
+			);
+			path = libs;
+			sourceTree = "<group>";
+		};
+		01655735163332F10055185A /* fftw */ = {
+			isa = PBXGroup;
+			children = (
+				01655736163332F10055185A /* include */,
+				01655738163332F10055185A /* lib */,
+			);
+			path = fftw;
+			sourceTree = "<group>";
+		};
+		01655736163332F10055185A /* include */ = {
+			isa = PBXGroup;
+			children = (
+				01655737163332F10055185A /* fftw3.h */,
+			);
+			path = include;
+			sourceTree = "<group>";
+		};
+		01655738163332F10055185A /* lib */ = {
+			isa = PBXGroup;
+			children = (
+				01655739163332F10055185A /* .gitignore */,
+				0165573A163332F10055185A /* osx */,
+				0165573C163332F10055185A /* win32 */,
+			);
+			path = lib;
+			sourceTree = "<group>";
+		};
+		0165573A163332F10055185A /* osx */ = {
+			isa = PBXGroup;
+			children = (
+				0165573B163332F10055185A /* fftw3f.a */,
+			);
+			path = osx;
+			sourceTree = "<group>";
+		};
+		0165573C163332F10055185A /* win32 */ = {
+			isa = PBXGroup;
+			children = (
+				0165573D163332F10055185A /* libfftw3f-3.dll */,
+			);
+			path = win32;
+			sourceTree = "<group>";
+		};
+		0165573E163332F10055185A /* kiss */ = {
+			isa = PBXGroup;
+			children = (
+				0165573F163332F10055185A /* _kiss_fft_guts.h */,
+				01655740163332F10055185A /* kiss_fft.c */,
+				01655741163332F10055185A /* kiss_fft.h */,
+				01655742163332F10055185A /* kiss_fftr.c */,
+				01655743163332F10055185A /* kiss_fftr.h */,
+			);
+			path = kiss;
+			sourceTree = "<group>";
+		};
+		01655745163332F10055185A /* src */ = {
+			isa = PBXGroup;
+			children = (
+				01655746163332F10055185A /* ofxEasyFft.cpp */,
+				01655747163332F10055185A /* ofxEasyFft.h */,
+				01655748163332F10055185A /* ofxFft.cpp */,
+				01655749163332F10055185A /* ofxFft.h */,
+				0165574A163332F10055185A /* ofxFftBasic.cpp */,
+				0165574B163332F10055185A /* ofxFftBasic.h */,
+				0165574C163332F10055185A /* ofxFftw.cpp */,
+				0165574D163332F10055185A /* ofxFftw.h */,
+			);
+			path = src;
 			sourceTree = "<group>";
 		};
 		01B056CD163213150013A327 /* ofxKinect */ = {
@@ -935,6 +1048,7 @@
 		BB4B014C10F69532006C3DED /* addons */ = {
 			isa = PBXGroup;
 			children = (
+				0165570D163332F10055185A /* ofxFft */,
 				01B056CD163213150013A327 /* ofxKinect */,
 				012D55C4162CF133002ED710 /* ofxOpenCv */,
 			);
@@ -1133,6 +1247,12 @@
 				01B0574E163213160013A327 /* usb_libusb10.c in Sources */,
 				01B05750163213160013A327 /* ofxKinect.cpp in Sources */,
 				01E4BDEE163329C8003A4BCA /* ofxAudioAnalyzer.cpp in Sources */,
+				01655766163332F10055185A /* kiss_fft.c in Sources */,
+				01655767163332F10055185A /* kiss_fftr.c in Sources */,
+				01655768163332F10055185A /* ofxEasyFft.cpp in Sources */,
+				01655769163332F10055185A /* ofxFft.cpp in Sources */,
+				0165576A163332F10055185A /* ofxFftBasic.cpp in Sources */,
+				0165576B163332F10055185A /* ofxFftw.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1237,9 +1357,11 @@
 					"$(inherited)",
 					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
 					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_2)",
+					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_3)",
 				);
 				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(SRCROOT)/../../../addons/ofxKinect/libs/libfreenect/lib/vs2010\"";
 				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_2 = "\"$(SRCROOT)/../../../addons/ofxKinect/libs/libusb/osx/libs\"";
+				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_3 = "\"$(SRCROOT)/../../../addons/ofxFft/libs/fftw/lib/osx\"";
 				PREBINDING = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)Debug";
 				WRAPPER_EXTENSION = app;
@@ -1266,9 +1388,11 @@
 					"$(inherited)",
 					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
 					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_2)",
+					"$(LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_3)",
 				);
 				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(SRCROOT)/../../../addons/ofxKinect/libs/libfreenect/lib/vs2010\"";
 				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_2 = "\"$(SRCROOT)/../../../addons/ofxKinect/libs/libusb/osx/libs\"";
+				LIBRARY_SEARCH_PATHS_QUOTED_FOR_TARGET_3 = "\"$(SRCROOT)/../../../addons/ofxFft/libs/fftw/lib/osx\"";
 				PREBINDING = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
