@@ -23,6 +23,7 @@
 		01B0574E163213160013A327 /* usb_libusb10.c in Sources */ = {isa = PBXBuildFile; fileRef = 01B056FE163213150013A327 /* usb_libusb10.c */; };
 		01B0574F163213160013A327 /* usb-1.0.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 01B05706163213150013A327 /* usb-1.0.a */; };
 		01B05750163213160013A327 /* ofxKinect.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 01B0573F163213150013A327 /* ofxKinect.cpp */; };
+		01E4BDEE163329C8003A4BCA /* ofxAudioAnalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 01E4BDEC163329C8003A4BCA /* ofxAudioAnalyzer.cpp */; };
 		01F6FD2C1631D0AA00C5A10B /* GLView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 01F6FD271631D0AA00C5A10B /* GLView.mm */; };
 		01F6FD2D1631D0AA00C5A10B /* ofxCocoaDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 01F6FD291631D0AA00C5A10B /* ofxCocoaDelegate.mm */; };
 		01F6FD2E1631D0AA00C5A10B /* ofxCocoaWindow.mm in Sources */ = {isa = PBXBuildFile; fileRef = 01F6FD2B1631D0AA00C5A10B /* ofxCocoaWindow.mm */; };
@@ -239,6 +240,8 @@
 		01B0573E163213150013A327 /* ofxBase3DVideo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxBase3DVideo.h; sourceTree = "<group>"; };
 		01B0573F163213150013A327 /* ofxKinect.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxKinect.cpp; sourceTree = "<group>"; };
 		01B05740163213150013A327 /* ofxKinect.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxKinect.h; sourceTree = "<group>"; };
+		01E4BDEC163329C8003A4BCA /* ofxAudioAnalyzer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxAudioAnalyzer.cpp; sourceTree = SOURCE_ROOT; };
+		01E4BDED163329C8003A4BCA /* ofxAudioAnalyzer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxAudioAnalyzer.h; sourceTree = SOURCE_ROOT; };
 		01F6FD261631D0AA00C5A10B /* GLView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GLView.h; sourceTree = "<group>"; };
 		01F6FD271631D0AA00C5A10B /* GLView.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GLView.mm; sourceTree = "<group>"; };
 		01F6FD281631D0AA00C5A10B /* ofxCocoaDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxCocoaDelegate.h; sourceTree = "<group>"; };
@@ -312,8 +315,7 @@
 				012D55C6162CF133002ED710 /* libs */,
 				012D562D162CF133002ED710 /* src */,
 			);
-			name = ofxOpenCv;
-			path = ../../../addons/ofxOpenCv;
+			path = ofxOpenCv;
 			sourceTree = "<group>";
 		};
 		012D55C6162CF133002ED710 /* libs */ = {
@@ -599,8 +601,7 @@
 				01B056E9163213150013A327 /* libs */,
 				01B0573D163213150013A327 /* src */,
 			);
-			name = ofxKinect;
-			path = ../../../addons/ofxKinect;
+			path = ofxKinect;
 			sourceTree = "<group>";
 		};
 		01B056E9163213150013A327 /* libs */ = {
@@ -895,6 +896,16 @@
 			path = src;
 			sourceTree = "<group>";
 		};
+		01E4BDEB16332956003A4BCA /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				01E4BDED163329C8003A4BCA /* ofxAudioAnalyzer.h */,
+				01E4BDEC163329C8003A4BCA /* ofxAudioAnalyzer.cpp */,
+			);
+			name = Audio;
+			path = Application;
+			sourceTree = "<group>";
+		};
 		01F6FD251631D0AA00C5A10B /* ofxCocoaWindow */ = {
 			isa = PBXGroup;
 			children = (
@@ -905,10 +916,11 @@
 				01F6FD2A1631D0AA00C5A10B /* ofxCocoaWindow.h */,
 				01F6FD2B1631D0AA00C5A10B /* ofxCocoaWindow.mm */,
 			);
-			path = ofxCocoaWindow;
-			sourceTree = "<group>";
+			name = ofxCocoaWindow;
+			path = addons/ofxCocoaWindow;
+			sourceTree = SOURCE_ROOT;
 		};
-		01F6FD351631D19800C5A10B /* Application */ = {
+		01F6FD351631D19800C5A10B /* Cocoa App */ = {
 			isa = PBXGroup;
 			children = (
 				01F6FD361631D19800C5A10B /* ofxWindowApp.xib */,
@@ -918,18 +930,18 @@
 				01F6FD3A1631D19800C5A10B /* SetupWindowController.h */,
 				01F6FD3B1631D19800C5A10B /* SetupWindowController.mm */,
 			);
-			path = Application;
+			path = "Cocoa App";
 			sourceTree = "<group>";
 		};
 		BB4B014C10F69532006C3DED /* addons */ = {
 			isa = PBXGroup;
 			children = (
 				01B056CD163213150013A327 /* ofxKinect */,
-				01F6FD251631D0AA00C5A10B /* ofxCocoaWindow */,
 				012D55C4162CF133002ED710 /* ofxOpenCv */,
 			);
 			name = addons;
-			sourceTree = "<group>";
+			path = ../../../addons;
+			sourceTree = SOURCE_ROOT;
 		};
 		BBAB23C913894ECA00AA2426 /* system frameworks */ = {
 			isa = PBXGroup;
@@ -984,6 +996,7 @@
 				012D5657162D021E002ED710 /* shaders */,
 				E4B69E1C0A3A1BDC003C02F2 /* src */,
 				E4EEC9E9138DF44700A80321 /* openFrameworks */,
+				01F6FD251631D0AA00C5A10B /* ofxCocoaWindow */,
 				BB4B014C10F69532006C3DED /* addons */,
 				E45BE5980E8CC70C009D7055 /* frameworks */,
 				E4B69B5B0A3A1756003C02F2 /* drawAndFadeDebug.app */,
@@ -993,7 +1006,8 @@
 		E4B69E1C0A3A1BDC003C02F2 /* src */ = {
 			isa = PBXGroup;
 			children = (
-				01F6FD351631D19800C5A10B /* Application */,
+				01E4BDEB16332956003A4BCA /* Audio */,
+				01F6FD351631D19800C5A10B /* Cocoa App */,
 				01F6FD2F1631D0CF00C5A10B /* glLaunch.h */,
 				01F6FD301631D0CF00C5A10B /* glLaunch.mm */,
 				E4B69E1D0A3A1BDC003C02F2 /* main.mm */,
@@ -1119,6 +1133,7 @@
 				01B0574D163213160013A327 /* tilt.c in Sources */,
 				01B0574E163213160013A327 /* usb_libusb10.c in Sources */,
 				01B05750163213160013A327 /* ofxKinect.cpp in Sources */,
+				01E4BDEE163329C8003A4BCA /* ofxAudioAnalyzer.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
