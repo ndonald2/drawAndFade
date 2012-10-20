@@ -45,7 +45,15 @@ void ofxAudioAnalyzer::setup(Settings settings)
     analyzedPSFData.assign(fft->getBinSize(), 0);
     storedPSFData.resize(fft->getBinSize());
     storedPSFData.assign(fft->getBinSize(), 0);
+    
+    signalEnergy = 0.0f;
     signalEnergySmoothed = 0.0f;
+    memset(regionEnergy, 0, sizeof(float)*3);
+    memset(regionEnergySmoothed, 0, sizeof(float)*3);
+    signalPSF = 0.0f;
+    signalPSFSmoothed = 0.0f;
+    memset(regionPSF, 0, sizeof(float)*3);
+    memset(regionPSFSmoothed, 0, sizeof(float)*3);
     
     setAttackRelease(settings.attackInMs, settings.releaseInMs);
     
@@ -82,17 +90,26 @@ void ofxAudioAnalyzer::audioIn(float *input, int bufferSize, int nChannels)
     memcpy(&analyzedFFTData[0], fftAmp, fft->getBinSize()*sizeof(float));
     
     // calculate psf & signal energy
-    float flux = 0;
+    float binFlux = 0;
+    float totalFlux = 0;
     float energy = 0;
     for (int i=0; i<fft->getBinSize(); i++){
-        flux = analyzedFFTData[i] - storedFFTData[i];
-        analyzedPSFData[i] = flux > 0 ? flux : 0;
+        binFlux = MAX(0,analyzedFFTData[i] - storedFFTData[i]);
+        analyzedPSFData[i] = binFlux;
+        totalFlux += binFlux;
         energy += analyzedFFTData[i];
     }
     
+    signalEnergy = energy;
+    signalPSF = totalFlux;
+    
     float coef = energy > signalEnergySmoothed ? coefAttack : coefRelease;
-    signalEnergySmoothed *= coef;
-    signalEnergySmoothed += energy*(1.0f-coef);
+    float smoothedEnergy = signalEnergySmoothed*coef + energy*(1.0f-coef);
+    signalEnergySmoothed = smoothedEnergy;
+    
+    coef = totalFlux > signalPSFSmoothed ? coefAttack : coefRelease;
+    float smoothedFlux = signalPSFSmoothed*coef + totalFlux*(1.0f-coef);
+    signalPSFSmoothed = smoothedFlux;
     
     // thread-safe assignments
     fftMutex.lock();
@@ -131,8 +148,7 @@ void ofxAudioAnalyzer::getFFTBins(vector<float> * bins)
     }
 }
 
-
-void ofxAudioAnalyzer::getPositiveSpectralFlux(vector<float> * flux)
+void ofxAudioAnalyzer::getPSFData(vector<float> * flux)
 {
     if (flux != NULL){
         psfMutex.lock();
@@ -141,14 +157,24 @@ void ofxAudioAnalyzer::getPositiveSpectralFlux(vector<float> * flux)
     }
 }
 
-float ofxAudioAnalyzer::getSignalEnergyInRegion(ofxAudioAnalyzerRegion region)
+float ofxAudioAnalyzer::getSignalEnergy(bool smoothed)
+{
+    return smoothed ? signalEnergySmoothed : signalEnergySmoothed;
+}
+
+float ofxAudioAnalyzer::getSignalEnergyInRegion(ofxAudioAnalyzerRegion region, bool smoothed)
 {
     if (region < 0 || region > 3) return 0.0f;
     
-    return regionEnergySmoothed[region];
+    return smoothed ? regionEnergySmoothed[region] : regionEnergy[region];
 }
 
-float getPSFinRegion(ofxAudioAnalyzerRegion region)
+float ofxAudioAnalyzer::getTotalPSF(bool smoothed)
+{
+    return smoothed ? signalPSFSmoothed : signalPSF;
+}
+
+float ofxAudioAnalyzer::getPSFinRegion(ofxAudioAnalyzerRegion region, bool smoothed)
 {
     
 }

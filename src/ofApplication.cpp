@@ -1,6 +1,6 @@
 #include "ofApplication.h"
 
-#define MAX_LINE_RADIUS    200.0f
+#define MAX_LINE_RADIUS    100.0f
 
 static int inputDeviceId = 0;
 
@@ -114,40 +114,34 @@ void ofApplication::update(){
 #ifdef USE_MOUSE
     if (ofGetMousePressed()){
         
+        float psf = audioAnalyzer.getTotalPSF();
+
         ofPoint mousePoint = ofPoint(ofGetMouseX(), ofGetMouseY());
         mouseVelocity = fabs(mousePoint.distance(lastMousePoint))*100.0f/ofGetFrameRate();
         lastMousePoint = mousePoint;
         
         float saturation = ofMap(mouseVelocity, 0.0f, 100.0f, 180.0f, 255.0f, true);
         float hue = ((cosf(0.05f*elapsedPhase)+1.0f)/2.0f)*255.0f;
-        float radius = 5.0f; //ofMap(smoothedVol, 0.0f, 0.25f, 2.0f, MAX_LINE_RADIUS, true);
-        float angle = M_PI*2.0f*ofRandomf();
+        float radius = ofMap(psf, 0.0f, 2.0f, 2.0f, MAX_LINE_RADIUS, true);
+        float angle = (2.0f*M_PI*ofRandomf());
         
         ofSetColor(ofColor::fromHsb(hue, saturation, 255.0f));
+        ofNoFill();
         ofSetLineWidth(3.0f);
-        ofPoint endPt = ofPoint(mousePoint.x + cosf(angle)*radius, mousePoint.y + sinf(angle)*radius);
         
+//        ofPolyline randomShape;
+//        for (int s=0; s<4; s++){
+//            float angle = M_PI*2.0f*ofRandomf();
+//            randomShape.addVertex(ofPoint(mousePoint.x + cosf(angle)*radius, mousePoint.y + sinf(angle)*radius));
+//        }
+//        randomShape.close();
+//        randomShape.draw(); 
+        
+        ofPoint endPt = ofPoint(mousePoint.x + cosf(angle)*radius, mousePoint.y + sinf(angle)*radius);
         ofLine(lastEndPoint, endPt);
         lastEndPoint = endPt;
     }
 #else
-    
-    vector<ofxCvBlob> & blobs = contourFinder.blobs;
-    if (blobs.size()){
-        
-        ofPoint & centroid = blobs[0].centroid;
-        
-        float hue = ((cosf(0.05f*elapsedPhase)+1.0f)/2.0f)*255.0f;
-        float radius = ofMap(smoothedVol, 0.0f, 0.25f, 2.0f, MAX_LINE_RADIUS, true);
-        float angle = M_PI*2.0f*ofRandomf();
-        
-        ofSetColor(ofColor::fromHsb(hue, 230, 255));
-        ofSetLineWidth(3.0f);
-        ofPoint endPt = ofPoint(centroid.x + cosf(angle)*radius, centroid.y + sinf(angle)*radius);
-        
-        ofLine(lastEndPoint, endPt);
-        lastEndPoint = endPt;
-    }
     
 #endif
     
@@ -168,18 +162,18 @@ void ofApplication::draw(){
     glDisable(GL_DEPTH_TEST);
     
     float energy = audioAnalyzer.getSignalEnergy();
-    float bright = ofMap(energy, 0.0f, 3.0f, 20.0f, 160.0f, true);
+    float bright = ofMap(energy, 0.0f, 2.0f, 20.0f, 160.0f, true);
     ofBackgroundGradient(ofColor::fromHsb(180, 80, bright), ofColor(0,0,0));
     ofSetColor(255, 255, 255);
     mainFbo.draw(0, 0);
     
-    stringstream ss;
-    ss << "Audio Signal Energy: " << energy;
-    ofDrawBitmapString(ss.str(), 20,20);
-//    blurShader.begin();
-//    blurShader.setUniformTexture("texSampler", mainFbo.getTextureReference(), 1);
-//    mainFbo.draw(0, 0);
-//    blurShader.end();
+//    stringstream ss;
+//    ss << "Audio Signal Energy: " << energy;
+//    ofDrawBitmapString(ss.str(), 20,20);
+//    ss.str(std::string());
+//    ss << "Audio Signal PSF: " << psf;
+//    ofDrawBitmapString(ss.str(), 20,45);
+
 
 }
 

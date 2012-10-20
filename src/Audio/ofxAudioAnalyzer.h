@@ -34,11 +34,11 @@ public:
     void setAttackRelease(float attackInMs, float releaseInMs);
     
     void getFFTBins(vector<float> * bins);
-    void getPositiveSpectralFlux(vector<float> * flux);     // postive spectral flux can be thresholded to detect transients
-    
-    float getSignalEnergy() { return signalEnergySmoothed; };
-    float getSignalEnergyInRegion(ofxAudioAnalyzerRegion region);
-    float getPSFinRegion(ofxAudioAnalyzerRegion region);
+    void getPSFData(vector<float> * flux);     // postive spectral flux can be thresholded to detect transients
+    float getSignalEnergy(bool smoothed = true);
+    float getSignalEnergyInRegion(ofxAudioAnalyzerRegion region, bool smoothed = true);
+    float getTotalPSF(bool smoothed = true);
+    float getPSFinRegion(ofxAudioAnalyzerRegion region, bool smoothed = true);
     
     struct Settings {
       
@@ -80,10 +80,14 @@ private:
     
     float           coefAttack;
     float           coefRelease;
+    float           signalEnergy;
+    float           regionEnergy[3];
     float           signalEnergySmoothed;
     float           regionEnergySmoothed[3];
     float           signalPSF;
     float           regionPSF[3];
+    float           signalPSFSmoothed;
+    float           regionPSFSmoothed[3];
     FreqRegion      _lowRegion;
     FreqRegion      _midRegion;
     FreqRegion      _highRegion;
