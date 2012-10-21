@@ -1,6 +1,6 @@
 #include "ofApplication.h"
 
-#define MAX_LINE_RADIUS    100.0f
+#define MAX_LINE_RADIUS    200.0f
 
 static int inputDeviceId = 0;
 
@@ -100,7 +100,7 @@ void ofApplication::update(){
     ofTexture & fadingTex = mainFbo.getTextureReference(1);
 
     mainFbo.setActiveDrawBuffer(0);
-    ofSetColor(255,255,255);
+    ofSetColor(ofColor(255,255,255));
     
     ofPushMatrix();
     ofScale(1.0f + scaledBlurVelocity.x, 1.0f + scaledBlurVelocity.y);
@@ -114,32 +114,33 @@ void ofApplication::update(){
 #ifdef USE_MOUSE
     if (ofGetMousePressed()){
         
-        float psf = audioAnalyzer.getTotalPSF();
+        float highEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_HIGH)*200.0f;
 
         ofPoint mousePoint = ofPoint(ofGetMouseX(), ofGetMouseY());
         mouseVelocity = fabs(mousePoint.distance(lastMousePoint))*100.0f/ofGetFrameRate();
         lastMousePoint = mousePoint;
         
-        float saturation = ofMap(mouseVelocity, 0.0f, 100.0f, 180.0f, 255.0f, true);
+        float saturation = ofMap(mouseVelocity, 0.0f, 100.0f, 255.0f, 180.0f, true);
         float hue = ((cosf(0.05f*elapsedPhase)+1.0f)/2.0f)*255.0f;
-        float radius = ofMap(psf, 0.0f, 2.0f, 2.0f, MAX_LINE_RADIUS, true);
-        float angle = (2.0f*M_PI*ofRandomf());
+        float radius = ofMap(highEnergy, 0.2f, 1.0f, 2.0f, MAX_LINE_RADIUS, true);
         
         ofSetColor(ofColor::fromHsb(hue, saturation, 255.0f));
         ofNoFill();
         ofSetLineWidth(3.0f);
         
-//        ofPolyline randomShape;
-//        for (int s=0; s<4; s++){
-//            float angle = M_PI*2.0f*ofRandomf();
-//            randomShape.addVertex(ofPoint(mousePoint.x + cosf(angle)*radius, mousePoint.y + sinf(angle)*radius));
-//        }
-//        randomShape.close();
-//        randomShape.draw(); 
+        ofLine(lastEndPoint, mousePoint);
+        lastEndPoint = mousePoint;
         
-        ofPoint endPt = ofPoint(mousePoint.x + cosf(angle)*radius, mousePoint.y + sinf(angle)*radius);
-        ofLine(lastEndPoint, endPt);
-        lastEndPoint = endPt;
+        if (radius > 0.0f){
+            ofPolyline randomShape;
+            randomShape.addVertex(mousePoint);
+            for (int s=0; s<4; s++){
+                float angle = M_PI*2.0f*ofRandomf();
+                randomShape.addVertex(ofPoint(mousePoint.x + cosf(angle)*radius, mousePoint.y + sinf(angle)*radius));
+            }
+            randomShape.close();
+            randomShape.draw(); 
+        }
     }
 #else
     
@@ -161,19 +162,26 @@ void ofApplication::draw(){
     
     glDisable(GL_DEPTH_TEST);
     
-    float energy = audioAnalyzer.getSignalEnergy();
-    float bright = ofMap(energy, 0.0f, 2.0f, 20.0f, 160.0f, true);
+    float lowPSF = audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_LOW)*10.0f;
+    float bright = ofMap(lowPSF, 0.0f, 1.0f, 20.0f, 120.0f, true);
     ofBackgroundGradient(ofColor::fromHsb(180, 80, bright), ofColor(0,0,0));
     ofSetColor(255, 255, 255);
     mainFbo.draw(0, 0);
     
 //    stringstream ss;
-//    ss << "Audio Signal Energy: " << energy;
-//    ofDrawBitmapString(ss.str(), 20,20);
+//    ss << "Audio Signal Energy: " << audioAnalyzer.getSignalEnergy();
+//    ofDrawBitmapString(ss.str(), 20,30);
 //    ss.str(std::string());
-//    ss << "Audio Signal PSF: " << psf;
+//    ss << "Audio Signal PSF: " << audioAnalyzer.getTotalPSF();
 //    ofDrawBitmapString(ss.str(), 20,45);
-
+//    ss.str(std::string());
+//    ss << "Region Energy -- Low: " << audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW) <<
+//    " Mid: " << audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_MID) << " High: " << audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_HIGH);
+//    ofDrawBitmapString(ss.str(), 20, 60);
+//    ss.str(std::string());
+//    ss << "Region PSF -- Low: " << audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_LOW) <<
+//    " Mid: " << audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_MID) << " High: " << audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_HIGH);
+//    ofDrawBitmapString(ss.str(), 20, 75);
 
 }
 

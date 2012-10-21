@@ -59,10 +59,18 @@ public:
     };
     
     struct FreqRegion {
-        float lower;
-        float upper;
         
-        FreqRegion() { lower = 0.0f; upper = 0.0f; };
+        float lowerFreq;
+        float upperFreq;
+        
+        // TODO
+        //float attackInMs;
+        //float releaseInMs;
+        
+        FreqRegion() {
+            lowerFreq = 0.0f;
+            upperFreq = 0.0f;
+        };
     };
 
 private:
@@ -94,4 +102,7 @@ private:
     
     ofMutex         fftMutex;
     ofMutex         psfMutex;
+    
+    // helpers
+    unsigned int binForFrequency(float freqInHz);
 };

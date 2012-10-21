@@ -57,6 +57,16 @@ void ofxAudioAnalyzer::setup(Settings settings)
     
     setAttackRelease(settings.attackInMs, settings.releaseInMs);
     
+    // regions
+    _lowRegion.lowerFreq = 40.0f;
+    _lowRegion.upperFreq = 160.0f;
+    
+    _midRegion.lowerFreq = 160.0f;
+    _midRegion.upperFreq = 2000.0f;
+    
+    _highRegion.lowerFreq = 2000.0f;
+    _highRegion.upperFreq = 20000.0f;
+    
     // setup audio input stream
     inputStream.setDeviceID(settings.inputDeviceId);
     inputStream.setInput(this);
@@ -85,31 +95,81 @@ void ofxAudioAnalyzer::audioIn(float *input, int bufferSize, int nChannels)
         memcpy(&pcmBuffer[0], input, bufferSize*sizeof(float));
     }
     
+    int nBins = fft->getBinSize();
+    
     fft->setSignal(pcmBuffer);
     float *fftAmp = fft->getAmplitude();
-    memcpy(&analyzedFFTData[0], fftAmp, fft->getBinSize()*sizeof(float));
+    memcpy(&analyzedFFTData[0], fftAmp, nBins*sizeof(float));
     
     // calculate psf & signal energy
     float binFlux = 0;
     float totalFlux = 0;
     float energy = 0;
-    for (int i=0; i<fft->getBinSize(); i++){
+    for (int i=0; i<nBins; i++){
         binFlux = MAX(0,analyzedFFTData[i] - storedFFTData[i]);
         analyzedPSFData[i] = binFlux;
         totalFlux += binFlux;
         energy += analyzedFFTData[i];
     }
     
-    signalEnergy = energy;
-    signalPSF = totalFlux;
+    signalEnergy = energy/nBins;
+    signalPSF = totalFlux/nBins;
     
     float coef = energy > signalEnergySmoothed ? coefAttack : coefRelease;
-    float smoothedEnergy = signalEnergySmoothed*coef + energy*(1.0f-coef);
+    float smoothedEnergy = signalEnergySmoothed*coef + signalEnergy*(1.0f-coef);
     signalEnergySmoothed = smoothedEnergy;
     
     coef = totalFlux > signalPSFSmoothed ? coefAttack : coefRelease;
-    float smoothedFlux = signalPSFSmoothed*coef + totalFlux*(1.0f-coef);
+    float smoothedFlux = signalPSFSmoothed*coef + signalPSF*(1.0f-coef);
     signalPSFSmoothed = smoothedFlux;
+    
+    // get region fft & PSF
+    FreqRegion fRegion;
+    for (unsigned int region = AA_FREQ_REGION_LOW; region <= AA_FREQ_REGION_HIGH; region++){
+        switch (region) {
+            case AA_FREQ_REGION_LOW:
+                fRegion = _lowRegion;
+                break;
+                
+            case AA_FREQ_REGION_MID:
+                fRegion = _midRegion;
+                break;
+                
+            case AA_FREQ_REGION_HIGH:
+                fRegion = _highRegion;
+                break;
+                
+            default:
+                return 0.0f;
+        }
+        
+        unsigned int lowerBin = binForFrequency(fRegion.lowerFreq);
+        unsigned int upperBin = binForFrequency(fRegion.upperFreq);
+        
+        float trEnergy = 0.0f;
+        float trPSF = 0.0f;
+        if (upperBin >= lowerBin){
+            unsigned int b = lowerBin;
+            do {
+                trEnergy += analyzedFFTData[b];
+                trPSF += analyzedPSFData[b];
+            } while (++b <= upperBin);
+        }
+        
+        trPSF /= (upperBin - lowerBin + 1);
+        trEnergy /= (upperBin - lowerBin + 1);
+        regionPSF[region] = trPSF;
+        regionEnergy[region] = trEnergy;
+        
+        float coef = trPSF >= regionPSFSmoothed[region] ? coefAttack : coefRelease;
+        float psfSmoothed = regionPSFSmoothed[region]*coef + trPSF*(1.0f-coef);
+        regionPSFSmoothed[region] = psfSmoothed;
+        
+        coef = trEnergy >= regionEnergySmoothed[region] ? coefAttack : coefRelease;
+        float enSmoothed = regionEnergySmoothed[region]*coef + trEnergy*(1.0f-coef);
+        regionEnergySmoothed[region] = enSmoothed;
+    }
+
     
     // thread-safe assignments
     fftMutex.lock();
@@ -177,4 +237,25 @@ float ofxAudioAnalyzer::getTotalPSF(bool smoothed)
 float ofxAudioAnalyzer::getPSFinRegion(ofxAudioAnalyzerRegion region, bool smoothed)
 {
     
+    if (region < 0 || region > 3)
+        return 0.0f;
+    
+    return smoothed ? regionPSFSmoothed[region] : regionPSF[region];
+}
+
+unsigned int ofxAudioAnalyzer::binForFrequency(float freqInHz)
+{
+    float nyquist = _settings.sampleRate/2;
+
+    if (freqInHz <= 0 || !fft)
+    {
+        return 0;
+    }
+    else if (freqInHz >= nyquist)
+    {
+        return fft->getBinSize();
+    }
+    else{
+        return MIN((unsigned int)roundf(freqInHz*fft->getBinSize()/nyquist), fft->getBinSize()-1);
+    }
 }
