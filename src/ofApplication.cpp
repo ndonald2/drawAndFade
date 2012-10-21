@@ -1,6 +1,6 @@
 #include "ofApplication.h"
 
-#define MAX_LINE_RADIUS    200.0f
+#define MAX_BLOTCH_RADIUS_FACTOR    0.2f
 
 static int inputDeviceId = 0;
 
@@ -114,7 +114,7 @@ void ofApplication::update(){
 #ifdef USE_MOUSE
     if (ofGetMousePressed()){
         
-        float highEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_HIGH)*200.0f;
+        float highEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_HIGH)*100.0f;
 
         ofPoint mousePoint = ofPoint(ofGetMouseX(), ofGetMouseY());
         mouseVelocity = fabs(mousePoint.distance(lastMousePoint))*100.0f/ofGetFrameRate();
@@ -122,7 +122,7 @@ void ofApplication::update(){
         
         float saturation = ofMap(mouseVelocity, 0.0f, 100.0f, 255.0f, 180.0f, true);
         float hue = ((cosf(0.05f*elapsedPhase)+1.0f)/2.0f)*255.0f;
-        float radius = ofMap(highEnergy, 0.2f, 1.0f, 2.0f, MAX_LINE_RADIUS, true);
+        float radius = ofMap(highEnergy, 0.2f, 1.0f, 0.0f, (float)ofGetWidth()*MAX_BLOTCH_RADIUS_FACTOR, true);
         
         ofSetColor(ofColor::fromHsb(hue, saturation, 255.0f));
         ofNoFill();
@@ -163,8 +163,8 @@ void ofApplication::draw(){
     glDisable(GL_DEPTH_TEST);
     
     float lowPSF = audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_LOW)*10.0f;
-    float bright = ofMap(lowPSF, 0.0f, 1.0f, 20.0f, 120.0f, true);
-    ofBackgroundGradient(ofColor::fromHsb(180, 80, bright), ofColor(0,0,0));
+    float bright = ofMap(lowPSF, 0.0f, 1.0f, 20.0f, 160.0f, true);
+    ofBackgroundGradient(ofColor::fromHsb(180, 80, bright), ofColor::fromHsb(0, 0, 20));
     ofSetColor(255, 255, 255);
     mainFbo.draw(0, 0);
     
