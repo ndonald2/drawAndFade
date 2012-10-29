@@ -11,6 +11,8 @@
 
 ofxHandPhysicsManager::ofxHandPhysicsState::ofxHandPhysicsState()
 {
+    affectedHandPositions.assign(MAX_POINT_HISTORY, ofPoint());
+    handPositions.assign(MAX_POINT_HISTORY, ofPoint());
     velocity = 0.0f;
     affectedVelocity = 0.0f;
     isNew = true;
@@ -72,24 +74,28 @@ void ofxHandPhysicsManager::update()
         ofxHandPhysicsState & physState = _trackedHandPhysics[handId];
         
         if (physState.isNew){
-            physState.affectedHandPosition = handPosition;
+            physState.affectedHandPositions.assign(MAX_POINT_HISTORY, handPosition);
+            physState.handPositions.assign(MAX_POINT_HISTORY, handPosition);
             physState.isNew = false;
         }
         else{
             double dTime = currentTime - physState.lastUpdateTime;
-            physState.velocity = (handPosition - physState.handPosition)/dTime;
+            physState.velocity = (handPosition - physState.handPositions[0])/dTime;
             
             if (_physicsEnabled){
                 
                 
             }
             else{
-                physState.affectedHandPosition = handPosition;
+                physState.affectedHandPositions.pop_back();
+                physState.affectedHandPositions.insert(physState.affectedHandPositions.begin(),  handPosition);
                 physState.affectedVelocity = physState.velocity;
             }
+            
+            physState.handPositions.pop_back();
+            physState.handPositions.insert(physState.handPositions.begin(), handPosition);
         }
-        
-        physState.handPosition = handPosition;
+
         physState.lastUpdateTime = currentTime;
     }
 }
@@ -107,17 +113,28 @@ ofxHandPhysicsManager::ofxHandPhysicsState ofxHandPhysicsManager::getPhysicsStat
         return ofxHandPhysicsState();
     }
     
-    return _trackedHandPhysics[_trackedHandIDs[i]];
+    XnUserID thId = _trackedHandIDs[i];
+    return _trackedHandPhysics[thId];
 }
 
-ofPoint ofxHandPhysicsManager::getNormalizedPositionForHand(unsigned int i)
+ofPoint ofxHandPhysicsManager::getNormalizedPositionForHand(unsigned int i, unsigned int stepIndex)
 {
     if (i >= _trackedHandIDs.size())
     {
         ofLog(OF_LOG_ERROR, "ofxHandPhysicsManager::getNormalizedPositionForHand - index out of bounds");
         return ofPoint();
     }
-    ofPoint returnPoint = _trackedHandPhysics[i].affectedHandPosition;
+    
+    if (_width == 0.0f || _height == 0.0f)
+    {
+        _width = _openNIDevice.getWidth();
+        _height = _openNIDevice.getHeight();
+    }
+    
+    stepIndex = CLAMP(stepIndex, 0, MAX_POINT_HISTORY);
+    
+    XnUserID thId = _trackedHandIDs[i];
+    ofPoint returnPoint = _trackedHandPhysics[thId].affectedHandPositions[stepIndex];
     return returnPoint * ofPoint(1.0f/_width, 1.0f/_height);
 }
 
@@ -129,7 +146,8 @@ float ofxHandPhysicsManager::getAbsVelocityOfHand(unsigned int i)
         return 0.0f;
     }
     
-    return _trackedHandPhysics[_trackedHandIDs[i]].affectedVelocity.length();
+    XnUserID thId = _trackedHandIDs[i];
+    return _trackedHandPhysics[thId].affectedVelocity.length();
 }
 
 void ofxHandPhysicsManager::setPhysicsEnabled(bool enabled){

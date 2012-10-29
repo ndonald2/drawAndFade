@@ -136,7 +136,10 @@ void ofApplication::update(){
     for (int i=0; i<handPhysics->getNumTrackedHands(); i++){
         
         ofPoint handPoint = handPhysics->getNormalizedPositionForHand(i);
-        handPoint *= ofPoint((float)ofGetWidth()/kinectOpenNI.getWidth(), (float)ofGetHeight()/kinectOpenNI.getHeight());
+        handPoint *= ofGetWindowSize();
+        
+        ofPoint prevHandPt = handPhysics->getNormalizedPositionForHand(i, 1);
+        prevHandPt *= ofGetWindowSize();
         
         float highEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_HIGH)*100.0f;
         float saturation = 255.0f;
@@ -147,8 +150,7 @@ void ofApplication::update(){
         ofNoFill();
         ofSetLineWidth(3.0f);
         
-        ofLine(lastEndPoint, handPoint);
-        lastEndPoint = handPoint;
+        ofLine(prevHandPt, handPoint);
         
         if (radius > 0.0f){
             ofPolyline randomShape;

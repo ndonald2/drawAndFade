@@ -13,6 +13,8 @@
 #include "ofxOpenNI.h"
 #include <map.h>
 
+#define MAX_POINT_HISTORY   10
+
 using std::map;
 
 class ofxHandPhysicsManager {
@@ -29,7 +31,7 @@ public:
     unsigned int getNumTrackedHands();
     
     ofxHandPhysicsState getPhysicsStateForHand(unsigned int i);
-    ofPoint getNormalizedPositionForHand(unsigned int i);
+    ofPoint getNormalizedPositionForHand(unsigned int i, unsigned int stepIndex = 0);
     float getAbsVelocityOfHand(unsigned int i);
     
     // physics setters
@@ -38,8 +40,8 @@ public:
     
     struct ofxHandPhysicsState {
         
-        ofPoint affectedHandPosition;
-        ofPoint handPosition;
+        vector<ofPoint> affectedHandPositions;
+        vector<ofPoint> handPositions;
         ofVec3f velocity;
         ofVec3f affectedVelocity;
         
