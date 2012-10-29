@@ -1,11 +1,11 @@
 #pragma once
 
 #include "ofMain.h"
+#include "ofxOpenNI.h"
 #include "ofxOpenCv.h"
-#include "ofxKinect.h"
 #include "ofxAudioAnalyzer.h"
 
-#define USE_MOUSE
+//#define USE_MOUSE
 
 void ofApplicationSetAudioInputDeviceId(int deviceId);
 
@@ -42,16 +42,6 @@ class ofApplication : public ofBaseApp{
         ofxAudioAnalyzer audioAnalyzer;
     
         // kinect
-        ofxKinect   kinect;
-        int         kinectAngle;
-    
-        ofxCvGrayscaleImage grayImage; // grayscale depth image
-        ofxCvGrayscaleImage grayThreshNear; // the near thresholded image
-        ofxCvGrayscaleImage grayThreshFar; // the far thresholded image
-        ofxCvContourFinder contourFinder;
-    
-        bool debugKinect;
-    
-        int nearThreshold;
-        int farThreshold;
+        ofxOpenNI  kinectOpenNI;
+
 };

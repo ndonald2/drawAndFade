@@ -46,18 +46,19 @@ void ofApplication::setup(){
     audioAnalyzer.setup(audioSettings);
     
     // kinect setup
-    kinect.setRegistration(true);
-    kinect.init(true, false);
-    kinectAngle = 0;
+    kinectOpenNI.setup();
+    kinectOpenNI.addImageGenerator();
+    kinectOpenNI.addDepthGenerator();
+    kinectOpenNI.setRegister(true);
+    kinectOpenNI.setMirror(true);
     
-	grayImage.allocate(kinect.width, kinect.height);
-	grayThreshNear.allocate(kinect.width, kinect.height);
-	grayThreshFar.allocate(kinect.width, kinect.height);
-	
-	nearThreshold = 230;
-	farThreshold = 70;
-    debugKinect = false;
+    // setup the hand generator
+    kinectOpenNI.addHandsGenerator();
+    kinectOpenNI.addHandFocusGesture("RaiseHand");
+    kinectOpenNI.addHandFocusGesture("MovingHand");
+    kinectOpenNI.setMaxNumHands(2);
     
+    kinectOpenNI.start();
 }
 
 //--------------------------------------------------------------
@@ -65,23 +66,7 @@ void ofApplication::update(){
     
     float elapsedPhase = 2.0*M_PI*ofGetElapsedTimef();
     
-    // update kinect
-    if (kinect.isConnected()){
-        kinect.update();
-        if (kinect.isFrameNew())
-        {
-            grayImage.setFromPixels(kinect.getDepthPixels(), kinect.width, kinect.height);        
-            grayThreshNear = grayImage;
-            grayThreshFar = grayImage;
-            grayThreshNear.threshold(nearThreshold, true);
-            grayThreshFar.threshold(farThreshold);
-            cvAnd(grayThreshNear.getCvImage(), grayThreshFar.getCvImage(), grayImage.getCvImage(), NULL);
-            grayImage.flagImageChanged();
-            contourFinder.findContours(grayImage, 10, (kinect.width*kinect.height)/2, 2, false);
-        }
-    }
-    
-    
+
     // draw to FBO
     
     glDisable(GL_DEPTH_TEST);
@@ -144,6 +129,35 @@ void ofApplication::update(){
     }
 #else
     
+    if (kinectOpenNI.getNumTrackedHands() > 0){
+        
+        ofPoint & handPoint = kinectOpenNI.getTrackedHand(0).getPosition();
+        handPoint *= ofPoint((float)ofGetWidth()/kinectOpenNI.getWidth(), (float)ofGetHeight()/kinectOpenNI.getHeight());
+        
+        float highEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_HIGH)*100.0f;
+        float saturation = 255.0f;
+        float hue = ((cosf(0.05f*elapsedPhase)+1.0f)/2.0f)*255.0f;
+        float radius = ofMap(highEnergy, 0.2f, 2.0f, 0.0f, (float)ofGetWidth()*MAX_BLOTCH_RADIUS_FACTOR, true);
+        
+        ofSetColor(ofColor::fromHsb(hue, saturation, 255.0f));
+        ofNoFill();
+        ofSetLineWidth(3.0f);
+        
+        ofLine(lastEndPoint, handPoint);
+        lastEndPoint = handPoint;
+        
+        if (radius > 0.0f){
+            ofPolyline randomShape;
+            randomShape.addVertex(handPoint);
+            for (int s=0; s<4; s++){
+                float angle = M_PI*2.0f*ofRandomf();
+                randomShape.addVertex(ofPoint(handPoint.x + cosf(angle)*radius, handPoint.y + sinf(angle)*radius));
+            }
+            randomShape.close();
+            randomShape.draw();
+        }
+    }
+    
 #endif
     
     ofTexture & mainTex = mainFbo.getTextureReference(0);
@@ -191,22 +205,6 @@ void ofApplication::draw(){
 //--------------------------------------------------------------
 void ofApplication::keyPressed(int key){
     switch (key) {
-        case 'o':
-            kinect.open();
-            kinect.setCameraTiltAngle(0);
-            break;
-            
-        case 'a':
-			kinectAngle++;
-			if(kinectAngle>30) kinectAngle=30;
-			kinect.setCameraTiltAngle(kinectAngle);
-			break;
-			
-		case 'z':
-			kinectAngle--;
-			if(kinectAngle<-30) kinectAngle=-30;
-			kinect.setCameraTiltAngle(kinectAngle);
-            break;
             
         default:
             break;

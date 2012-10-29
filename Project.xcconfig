@@ -12,11 +12,9 @@ ADDONS_PATH = ../../../addons
 OFX_OPENCV_HEADERS = "$(ADDONS_PATH)/ofxOpenCv/libs/opencv/include/"
 
 // ofxKinect
-OFX_KINECT_HEADERS = "$(ADDONS_PATH)/ofxKinect/libs/libusb/osx/include/"
-OFX_KINECT_LIBS = "$(ADDONS_PATH)/ofxKinect/libs/libusb/osx/libs/usb-1.0.a"
 
 // all addons
-OF_ADDON_HEADERS = $(OFX_KINECT_HEADERS) $(OFX_OPENCV_HEADERS)
+OF_ADDON_HEADERS = $(OFX_OPENCV_HEADERS)
 OF_ADDON_LIBS = $(OFX_KINECT_LIBS)
 
 ///////////////////////////////////////////
