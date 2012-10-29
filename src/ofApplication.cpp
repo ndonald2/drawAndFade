@@ -1,6 +1,6 @@
 #include "ofApplication.h"
 
-#define MAX_BLOTCH_RADIUS_FACTOR    0.2f
+#define MAX_BLOTCH_RADIUS_FACTOR    0.05f
 
 static int inputDeviceId = 0;
 
@@ -122,7 +122,7 @@ void ofApplication::update(){
         
         float saturation = ofMap(mouseVelocity, 0.0f, 100.0f, 255.0f, 180.0f, true);
         float hue = ((cosf(0.05f*elapsedPhase)+1.0f)/2.0f)*255.0f;
-        float radius = ofMap(highEnergy, 0.2f, 1.0f, 0.0f, (float)ofGetWidth()*MAX_BLOTCH_RADIUS_FACTOR, true);
+        float radius = ofMap(highEnergy, 0.2f, 2.0f, 0.0f, (float)ofGetWidth()*MAX_BLOTCH_RADIUS_FACTOR, true);
         
         ofSetColor(ofColor::fromHsb(hue, saturation, 255.0f));
         ofNoFill();
