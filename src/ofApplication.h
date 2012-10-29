@@ -4,6 +4,7 @@
 #include "ofxOpenNI.h"
 #include "ofxOpenCv.h"
 #include "ofxAudioAnalyzer.h"
+#include "ofxHandPhysics.h"
 
 //#define USE_MOUSE
 
@@ -42,6 +43,6 @@ class ofApplication : public ofBaseApp{
         ofxAudioAnalyzer audioAnalyzer;
     
         // kinect
-        ofxOpenNI  kinectOpenNI;
-
+        ofxOpenNI                   kinectOpenNI;
+        ofxHandPhysicsManager *     handPhysics;
 };

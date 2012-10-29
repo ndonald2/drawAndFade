@@ -59,6 +59,8 @@ void ofApplication::setup(){
     kinectOpenNI.setMaxNumHands(2);
     
     kinectOpenNI.start();
+    
+    handPhysics = new ofxHandPhysicsManager(kinectOpenNI);
 }
 
 //--------------------------------------------------------------
@@ -129,9 +131,11 @@ void ofApplication::update(){
     }
 #else
     
-    if (kinectOpenNI.getNumTrackedHands() > 0){
+    handPhysics->update();
+    
+    for (int i=0; i<handPhysics->getNumTrackedHands(); i++){
         
-        ofPoint & handPoint = kinectOpenNI.getTrackedHand(0).getPosition();
+        ofPoint handPoint = handPhysics->getNormalizedPositionForHand(i);
         handPoint *= ofPoint((float)ofGetWidth()/kinectOpenNI.getWidth(), (float)ofGetHeight()/kinectOpenNI.getHeight());
         
         float highEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_HIGH)*100.0f;
