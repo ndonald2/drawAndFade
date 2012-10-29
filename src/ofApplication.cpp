@@ -11,7 +11,7 @@ void ofApplicationSetAudioInputDeviceId(int deviceId){
 //--------------------------------------------------------------
 void ofApplication::setup(){
     
-    ofSetFrameRate(60);
+    ofSetFrameRate(30);
     ofSetVerticalSync(true);
     ofEnableAlphaBlending();
     ofEnableSmoothing();
@@ -133,6 +133,8 @@ void ofApplication::update(){
     
     handPhysics->update();
     
+    float highEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_HIGH)*150.0f;
+    
     for (int i=0; i<handPhysics->getNumTrackedHands(); i++){
         
         ofPoint handPoint = handPhysics->getNormalizedPositionForHand(i);
@@ -141,7 +143,6 @@ void ofApplication::update(){
         ofPoint prevHandPt = handPhysics->getNormalizedPositionForHand(i, 1);
         prevHandPt *= ofGetWindowSize();
         
-        float highEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_HIGH)*100.0f;
         float saturation = 255.0f;
         float hue = ((cosf(0.05f*elapsedPhase)+1.0f)/2.0f)*255.0f;
         float radius = ofMap(highEnergy, 0.2f, 2.0f, 0.0f, (float)ofGetWidth()*MAX_BLOTCH_RADIUS_FACTOR, true);
@@ -182,8 +183,8 @@ void ofApplication::draw(){
     
     glDisable(GL_DEPTH_TEST);
     
-    float lowPSF = audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_LOW)*10.0f;
-    float bright = ofMap(lowPSF, 0.0f, 1.0f, 20.0f, 160.0f, true);
+    float lowFreq = audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_LOW)*2.0f;
+    float bright = ofMap(lowFreq, 0.0f, 1.0f, 20.0f, 160.0f, true);
     ofBackgroundGradient(ofColor::fromHsb(180, 80, bright), ofColor::fromHsb(0, 0, 20));
     ofSetColor(255, 255, 255);
     mainFbo.draw(0, 0);

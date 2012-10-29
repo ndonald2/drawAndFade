@@ -10,9 +10,15 @@ int main(int argc, char *argv[])
     return 0;
 }
 //--------------------------------------------------------------
+//
+//#include "ofApplication.h"
+//#include "ofAppGlutWindow.h"
+//#include <Quartz/Quartz.h>
+//
 //int main(){
 //	ofAppGlutWindow window; // create a window
 //	// set width, height, mode (OF_WINDOW or OF_FULLSCREEN)
 //	ofSetupOpenGL(&window, 1024, 768, OF_WINDOW);
+//    ofApplicationSetAudioInputDeviceId(2);
 //	ofRunApp(new ofApplication()); // start the app
 //}

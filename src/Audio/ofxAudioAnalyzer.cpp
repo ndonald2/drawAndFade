@@ -19,7 +19,7 @@ ofxAudioAnalyzer::Settings::Settings(){
     implementation = OF_FFT_FFTW;
     
     attackInMs = 1.0f;
-    releaseInMs = 100.0f;
+    releaseInMs = 150.0f;
 }
 
 ofxAudioAnalyzer::ofxAudioAnalyzer()
