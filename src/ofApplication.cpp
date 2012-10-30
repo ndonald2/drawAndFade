@@ -137,11 +137,15 @@ void ofApplication::update(){
     
     for (int i=0; i<handPhysics->getNumTrackedHands(); i++){
         
-        ofPoint handPoint = handPhysics->getNormalizedPositionForHand(i);
-        handPoint *= ofGetWindowSize();
+        ofPoint hp = handPhysics->getNormalizedPositionForHand(i);
+        ofPoint hp1 = handPhysics->getNormalizedPositionForHand(i, 1);
+        ofPoint hp2 = handPhysics->getNormalizedPositionForHand(i, 2);
+        hp *= ofGetWindowSize();
+        hp1 *= ofGetWindowSize();
+        hp2 *= ofGetWindowSize();
         
-        ofPoint prevHandPt = handPhysics->getNormalizedPositionForHand(i, 1);
-        prevHandPt *= ofGetWindowSize();
+        ofPoint mp1 = hp.middle(hp1);
+        ofPoint mp2 = hp1.middle(hp2);
         
         float saturation = 255.0f;
         float hue = ((cosf(0.05f*elapsedPhase)+1.0f)/2.0f)*255.0f;
@@ -151,18 +155,17 @@ void ofApplication::update(){
         ofNoFill();
         ofSetLineWidth(3.0f);
         
-        ofLine(prevHandPt, handPoint);
-        
-        if (radius > 0.0f){
-            ofPolyline randomShape;
-            randomShape.addVertex(handPoint);
-            for (int s=0; s<4; s++){
-                float angle = M_PI*2.0f*ofRandomf();
-                randomShape.addVertex(ofPoint(handPoint.x + cosf(angle)*radius, handPoint.y + sinf(angle)*radius));
-            }
-            randomShape.close();
-            randomShape.draw();
-        }
+        ofLine(hp1, hp);
+//        if (radius > 0.0f){
+//            ofPolyline randomShape;
+//            randomShape.addVertex(hp);
+//            for (int s=0; s<4; s++){
+//                float angle = M_PI*2.0f*ofRandomf();
+//                randomShape.addVertex(ofPoint(hp.x + cosf(angle)*radius, hp.y + sinf(angle)*radius));
+//            }
+//            randomShape.close();
+//            randomShape.draw();
+//        }
     }
     
 #endif

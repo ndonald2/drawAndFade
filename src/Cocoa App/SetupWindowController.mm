@@ -10,6 +10,10 @@
 #import "RtAudio.h"
 #import "ofApplication.h"
 
+#define kPreviousResKey             @"previous_resolution"
+#define kPreviousFullscreenKey      @"previous_fullscreen"
+#define kPreviousAudioDeviceKey     @"previous_audio_device"
+
 #define kAudioDeviceName            @"device_name"
 #define kAudioDeviceIndex           @"device_index"
 #define kAudioDeviceInputChannels   @"device_input_channels"
@@ -66,12 +70,22 @@
     
     [self.resBox addItemsWithTitles:resStrings];
     
-    // select current resolution
-    CGDisplayModeRef currentMode = CGDisplayCopyDisplayMode(CGMainDisplayID());
-    NSString *currentModeString = [NSString stringWithFormat:@"%li x %li", CGDisplayModeGetWidth(currentMode), CGDisplayModeGetHeight(currentMode)];
-    [self.resBox selectItemWithTitle:currentModeString];
+    NSString *lastResolution = [[NSUserDefaults standardUserDefaults] objectForKey:kPreviousResKey];
+    if (lastResolution != nil){
+        [self.resBox selectItemWithTitle:lastResolution];
+    }
+    else{    
+        // select current resolution
+        CGDisplayModeRef currentMode = CGDisplayCopyDisplayMode(CGMainDisplayID());
+        NSString *currentModeString = [NSString stringWithFormat:@"%li x %li", CGDisplayModeGetWidth(currentMode), CGDisplayModeGetHeight(currentMode)];
+        [self.resBox selectItemWithTitle:currentModeString];
+    }
     
     CFRelease(allResolutions);
+    
+    // Previous fullscreen state
+    BOOL prevFullscreen = [[[NSUserDefaults standardUserDefaults] objectForKey:kPreviousFullscreenKey] boolValue];
+    [self.fullscreenCheck setState: prevFullscreen ? NSOnState : NSOffState];
     
     // Audio inputs
     RtAudio *rtAudio = new RtAudio();
@@ -101,13 +115,22 @@
                 }
             }
         }
+        
+        NSString *prevDeviceName = [[NSUserDefaults standardUserDefaults] objectForKey:kPreviousAudioDeviceKey];
+        if (prevDeviceName)
+        {
+            [self.audioInputBox selectItemWithTitle:prevDeviceName];
+        }
     }
 }
 
 - (IBAction)startPressed:(id)sender{
     NSString *selectedRes = [self.resBox titleOfSelectedItem];
     NSArray *resComponents = [selectedRes componentsSeparatedByString:@" x "];
-    int deviceIndex = [[[self.audioDevices objectAtIndex:[self.audioInputBox indexOfSelectedItem]] objectForKey:kAudioDeviceIndex] intValue];
+    BOOL fullscreen = self.fullscreenCheck.state == NSOnState;
+    NSDictionary *audioDevice = [self.audioDevices objectAtIndex:[self.audioInputBox indexOfSelectedItem]];
+    NSString *audioDeviceName = [audioDevice objectForKey:kAudioDeviceName];
+    int deviceIndex = [[audioDevice objectForKey:kAudioDeviceIndex] intValue];
     ofApplicationSetAudioInputDeviceId(deviceIndex);
     if (resComponents.count != 2){
         // error message
@@ -118,6 +141,13 @@
         int height = [[resComponents objectAtIndex:1] intValue];
         [self.window performClose:nil];
         [(ofxWindowAppDelegate*)[[NSApplication sharedApplication] delegate] launchGLWindowWithResolution:CGSizeMake(width, height) fullscreen:self.fullscreenCheck.state == NSOnState];
+        
+        [[NSUserDefaults standardUserDefaults] setObject:selectedRes forKey:kPreviousResKey];
+        [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithBool:fullscreen] forKey:kPreviousFullscreenKey];
+        if (audioDeviceName != nil)
+            [[NSUserDefaults standardUserDefaults] setObject:audioDeviceName forKey:kPreviousAudioDeviceKey];
+        
+        [[NSUserDefaults standardUserDefaults] synchronize];
     }
 }
 
