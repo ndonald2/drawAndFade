@@ -137,9 +137,9 @@ void ofApplication::update(){
     
     for (int i=0; i<handPhysics->getNumTrackedHands(); i++){
         
-        ofPoint hp = handPhysics->getNormalizedPositionForHand(i);
-        ofPoint hp1 = handPhysics->getNormalizedPositionForHand(i, 1);
-        ofPoint hp2 = handPhysics->getNormalizedPositionForHand(i, 2);
+        ofPoint hp = handPhysics->getNormalizedSpritePositionForHand(i);
+        ofPoint hp1 = handPhysics->getNormalizedSpritePositionForHand(i, 1);
+        ofPoint hp2 = handPhysics->getNormalizedSpritePositionForHand(i, 2);
         hp *= ofGetWindowSize();
         hp1 *= ofGetWindowSize();
         hp2 *= ofGetWindowSize();

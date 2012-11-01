@@ -6,7 +6,6 @@
 //
 //
 
-
 #pragma once
 
 #include "ofMain.h"
@@ -31,19 +30,24 @@ public:
     unsigned int getNumTrackedHands();
     
     ofxHandPhysicsState getPhysicsStateForHand(unsigned int i);
-    ofPoint getNormalizedPositionForHand(unsigned int i, unsigned int stepIndex = 0);
-    float getAbsVelocityOfHand(unsigned int i);
+    ofPoint getNormalizedSpritePositionForHand(unsigned int i, unsigned int stepIndex = 0);
+    float   getAbsSpriteVelocityForHand(unsigned int i);
     
-    // physics setters
-    void setPhysicsEnabled(bool enabled);
-    void setSpringPhysics(float mass, float coef, float friction);
-    
+    // physics parameters
+    bool        physicsEnabled;
+    float       spriteMass;
+    float       springCoef;
+    float       restDistance;
+    float       friction;
+    ofVec2f     gravity;
+
     struct ofxHandPhysicsState {
         
-        vector<ofPoint> affectedHandPositions;
         vector<ofPoint> handPositions;
-        ofVec3f velocity;
-        ofVec3f affectedVelocity;
+        vector<ofPoint> spritePositions;
+        ofVec2f handVelocity;
+        ofVec2f spriteVelocity;
+        ofVec2f spriteAcceleration;
         
         double  lastUpdateTime;
         
@@ -62,10 +66,6 @@ private:
     
     vector<XnUserID>                     _trackedHandIDs;
     map<XnUserID, ofxHandPhysicsState>   _trackedHandPhysics;
-    
-    bool    _physicsEnabled;
-    float   _mass;
-    float   _springCoef;
-    float   _friction;
+
 };
 
