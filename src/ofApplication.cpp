@@ -51,6 +51,7 @@ void ofApplication::setup(){
     kinectOpenNI.addDepthGenerator();
     kinectOpenNI.setRegister(true);
     kinectOpenNI.setMirror(true);
+    kinectOpenNI.setSafeThreading(true);
     
     // setup the hand generator
     kinectOpenNI.addHandsGenerator();
@@ -61,6 +62,7 @@ void ofApplication::setup(){
     kinectOpenNI.start();
     
     handPhysics = new ofxHandPhysicsManager(kinectOpenNI);
+    handPhysics->physicsEnabled = true;
 }
 
 //--------------------------------------------------------------
@@ -136,6 +138,11 @@ void ofApplication::update(){
     float highEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_HIGH)*150.0f;
     
     for (int i=0; i<handPhysics->getNumTrackedHands(); i++){
+        
+        ofSetColor(255,255,255);
+        ofPoint handPos = handPhysics->getPhysicsStateForHand(i).handPositions[0];
+        handPos *= ofGetWindowSize()/ofPoint(640,480);
+        ofCircle(handPos, 2.0f);
         
         ofPoint hp = handPhysics->getNormalizedSpritePositionForHand(i);
         ofPoint hp1 = handPhysics->getNormalizedSpritePositionForHand(i, 1);

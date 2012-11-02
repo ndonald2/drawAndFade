@@ -21,9 +21,12 @@ ofxHandPhysicsManager::ofxHandPhysicsState::ofxHandPhysicsState()
 ofxHandPhysicsManager::ofxHandPhysicsManager(ofxOpenNI &openNIDevice) :
     _openNIDevice(openNIDevice),
     physicsEnabled(false),
-    spriteMass(10.0f),      // need to set these...
-    springCoef(1.0f),
-    friction(0.1f)
+    spriteMass(1.0f),
+    springCoef(100.0f),
+    friction(0.05f),
+    restDistance(10.0f),
+    gravity(ofPoint(0, 1000.0f)),
+    smoothCoef(0.66f)
 {
     _width = openNIDevice.getWidth();
     _height = openNIDevice.getHeight();
@@ -81,6 +84,9 @@ void ofxHandPhysicsManager::update()
         else{
             
             // update hand position
+            handPosition *= 1.0f - smoothCoef;
+            handPosition += physState.handPositions[0]*smoothCoef;
+            
             physState.handPositions.pop_back();
             physState.handPositions.insert(physState.handPositions.begin(), handPosition);
             
@@ -92,7 +98,8 @@ void ofxHandPhysicsManager::update()
                 ofVec2f dStretch = physState.spritePositions[0] - physState.handPositions[0];
                 dStretch -= restDistance*dStretch.getNormalized();
                 
-                ofVec2f force = dStretch*springCoef;
+                ofVec2f force = -dStretch*springCoef;
+                force += gravity;
                 physState.spriteAcceleration = force/spriteMass;
                 physState.spriteVelocity += physState.spriteAcceleration * dTime;
                 physState.spriteVelocity *= 1.0f - friction;

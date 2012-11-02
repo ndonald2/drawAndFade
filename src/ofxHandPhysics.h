@@ -33,6 +33,9 @@ public:
     ofPoint getNormalizedSpritePositionForHand(unsigned int i, unsigned int stepIndex = 0);
     float   getAbsSpriteVelocityForHand(unsigned int i);
     
+    // input smoothing
+    float       smoothCoef;
+    
     // physics parameters
     bool        physicsEnabled;
     float       spriteMass;
