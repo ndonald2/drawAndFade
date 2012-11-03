@@ -85,6 +85,7 @@ void ofxAudioAnalyzer::audioIn(float *input, int bufferSize, int nChannels)
 {
     if (!input) return;
     
+    pcmMutex.lock();
     if (nChannels > 1){
         for (int i=0; i<bufferSize; i++){
             pcmBuffer[i] = input[i*2]*0.5f;
@@ -94,6 +95,7 @@ void ofxAudioAnalyzer::audioIn(float *input, int bufferSize, int nChannels)
     else{
         memcpy(&pcmBuffer[0], input, bufferSize*sizeof(float));
     }
+    pcmMutex.unlock();
     
     int nBins = fft->getBinSize();
     
@@ -112,8 +114,8 @@ void ofxAudioAnalyzer::audioIn(float *input, int bufferSize, int nChannels)
         energy += analyzedFFTData[i];
     }
     
-    signalEnergy = energy/nBins;
-    signalPSF = totalFlux/nBins;
+    signalEnergy = energy;
+    signalPSF = totalFlux;
     
     float coef = energy > signalEnergySmoothed ? coefAttack : coefRelease;
     float smoothedEnergy = signalEnergySmoothed*coef + signalEnergy*(1.0f-coef);
@@ -156,8 +158,6 @@ void ofxAudioAnalyzer::audioIn(float *input, int bufferSize, int nChannels)
             } while (++b <= upperBin);
         }
         
-        trPSF /= (upperBin - lowerBin + 1);
-        trEnergy /= (upperBin - lowerBin + 1);
         regionPSF[region] = trPSF;
         regionEnergy[region] = trEnergy;
         
@@ -199,22 +199,31 @@ void ofxAudioAnalyzer::setAttackRelease(float attackInMs, float releaseInMs)
     coefRelease = CLAMP(coefRelease, 0.0f, 0.9999f);
 }
 
-void ofxAudioAnalyzer::getFFTBins(vector<float> * bins)
+vector<float> ofxAudioAnalyzer::getFFTBins()
 {
-    if (bins != NULL){
-        fftMutex.lock();
-        *bins = storedFFTData;
-        fftMutex.unlock();
-    }
+    vector<float> bins;
+    fftMutex.lock();
+    bins = storedFFTData;
+    fftMutex.unlock();
+    return bins;
 }
 
-void ofxAudioAnalyzer::getPSFData(vector<float> * flux)
+vector<float> ofxAudioAnalyzer::getPSFData()
 {
-    if (flux != NULL){
-        psfMutex.lock();
-        *flux = storedPSFData;
-        psfMutex.unlock();
-    }
+    vector<float> flux;
+    psfMutex.lock();
+    flux = storedPSFData;
+    psfMutex.unlock();
+    return flux;
+}
+
+vector<float> ofxAudioAnalyzer::getPCMData()
+{
+    vector<float> pcm;
+    pcmMutex.lock();
+    pcm = pcmBuffer;
+    pcmMutex.unlock();
+    return pcm;
 }
 
 float ofxAudioAnalyzer::getSignalEnergy(bool smoothed)

@@ -99,7 +99,7 @@ void ofxHandPhysicsManager::update()
                 dStretch -= restDistance*dStretch.getNormalized();
                 
                 ofVec2f force = -dStretch*springCoef;
-                force += gravity;
+                force += gravity*spriteMass;
                 physState.spriteAcceleration = force/spriteMass;
                 physState.spriteVelocity += physState.spriteAcceleration * dTime;
                 physState.spriteVelocity *= 1.0f - friction;

@@ -12,6 +12,10 @@ void ofApplicationSetAudioInputDeviceId(int deviceId);
 
 class ofApplication : public ofBaseApp{
 	public:
+    
+        ofApplication();
+        ~ofApplication();
+    
 		void setup();
 		void update();
 		void draw();
@@ -26,14 +30,17 @@ class ofApplication : public ofBaseApp{
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
     
+        // drawing
+        void drawHandSprites();
+        void drawAudioBlobAtPoint(ofPoint & point);
+    
     private:
     
         ofFbo           mainFbo;
         ofShader        blurShader;
     
-        ofPoint lastEndPoint;
-        ofPoint lastMousePoint;
-        float   mouseVelocity;
+        // state
+        float   elapsedPhase;
     
         // blur parameters
         ofPoint blurDirection;
@@ -45,4 +52,19 @@ class ofApplication : public ofBaseApp{
         // kinect
         ofxOpenNI                   kinectOpenNI;
         ofxHandPhysicsManager *     handPhysics;
+    
+        // animation options
+        bool        debugMode;
+        bool        showTrails;
+        ofColor     audioBlobColor;
+        ofColor     spriteColor;
+        ofColor     bgColor;
+        ofColor     bgHighlightColor;
+    
+#ifdef USE_MOUSE
+    ofPoint lastEndPoint;
+    ofPoint lastMousePoint;
+    float   mouseVelocity;
+#endif
+    
 };

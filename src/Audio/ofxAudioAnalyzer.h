@@ -33,8 +33,9 @@ public:
     void setLowMidHighRegions(FreqRegion lowRegion, FreqRegion midRegion, FreqRegion highRegion);
     void setAttackRelease(float attackInMs, float releaseInMs);
     
-    void getFFTBins(vector<float> * bins);
-    void getPSFData(vector<float> * flux);     // postive spectral flux can be thresholded to detect transients
+    vector<float> getFFTBins();
+    vector<float> getPSFData();     // postive spectral flux can be thresholded to detect transients
+    vector<float> getPCMData();
     float getSignalEnergy(bool smoothed = true);
     float getSignalEnergyInRegion(ofxAudioAnalyzerRegion region, bool smoothed = true);
     float getTotalPSF(bool smoothed = true);
@@ -100,6 +101,7 @@ private:
     FreqRegion      _midRegion;
     FreqRegion      _highRegion;
     
+    ofMutex         pcmMutex;
     ofMutex         fftMutex;
     ofMutex         psfMutex;
     
