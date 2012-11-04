@@ -32,7 +32,8 @@ class ofApplication : public ofBaseApp{
     
         // drawing
         void drawHandSprites();
-        void drawAudioBlobAtPoint(ofPoint & point);
+        void drawAudioBlobs();
+        void drawBillboardRect(int x, int y, int w, int h);
     
     private:
     

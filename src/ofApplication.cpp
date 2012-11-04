@@ -1,6 +1,6 @@
 #include "ofApplication.h"
 
-#define MAX_BLOTCH_RADIUS    50.0f
+#define MAX_BLOTCH_RADIUS    150.0f
 
 static int inputDeviceId = 0;
 
@@ -31,13 +31,14 @@ void ofApplication::setup(){
     
     ofSetFrameRate(30);
     ofSetVerticalSync(true);
-    ofEnableAlphaBlending();
     ofEnableSmoothing();
     
     // setup animation parameters
     debugMode = false;
     showTrails = true;
     audioBlobColor = ofColor(180,180,180);
+    
+    ofSetCircleResolution(50);
     
 #ifdef USE_MOUSE
     mouseVelocity = 0.0f;
@@ -50,18 +51,18 @@ void ofApplication::setup(){
     fboSettings.useStencil = false;
     fboSettings.depthStencilAsTexture = false;
     fboSettings.numColorbuffers = 2;
-    fboSettings.internalformat = GL_RGBA32F_ARB;
+    fboSettings.internalformat = GL_RGBA;
         
     mainFbo.allocate(fboSettings);
     mainFbo.begin();
-    ofClear(255,255,255,10);
+    ofClear(0,0,0,0);
     mainFbo.setActiveDrawBuffer(1);
-    ofClear(255,255,255,10);
+    ofClear(0,0,0,0);
     mainFbo.end();
     
     blurShader.load("shaders/blur.vert", "shaders/blur.frag");
     blurDirection = ofPoint(0,0);
-    blurVelocity = 10;
+    blurVelocity = ofPoint(5.0f,5.0f);
     
     // audio setup
     ofxAudioAnalyzer::Settings audioSettings;
@@ -88,6 +89,7 @@ void ofApplication::setup(){
     
     handPhysics = new ofxHandPhysicsManager(kinectOpenNI);
     handPhysics->restDistance = 40.0f;
+    handPhysics->smoothCoef = 0.75f;
     handPhysics->friction = 0.03f;
     handPhysics->gravity = ofVec2f(0,800.0f);
     handPhysics->physicsEnabled = true;
@@ -101,23 +103,25 @@ void ofApplication::update(){
     // draw to FBO
     
     glDisable(GL_DEPTH_TEST);
+    
     mainFbo.begin();
     ofFill();
+    mainFbo.setActiveDrawBuffer(0);
+    ofDisableAlphaBlending();
+    ofClear(0,0,0,0);
+    ofSetColor(255,255,255);
+    
+    ofTexture & fadingTex = mainFbo.getTextureReference(1);
     
     if (showTrails){
         if (ofGetFrameNum() % 180 == 0)
         {
-            blurVelocity = ofPoint(1.0f,1.0f)*ofRandom(100.0f, 300.0f);
+            blurVelocity = ofPoint(1.0f,1.0f)*ofRandom(5.0f, 80.0f);
             blurDirection = ofPoint(1.0f,1.0f)*ofRandom(-0.2f, 0.2f);
         }
         
         ofPoint scaledBlurVelocity = blurVelocity/10000.0f;
         ofPoint scaledBlurDirection = (ofPoint(0.5,0.5) + blurDirection) * scaledBlurVelocity;
-        
-        ofTexture & fadingTex = mainFbo.getTextureReference(1);
-
-        mainFbo.setActiveDrawBuffer(0);
-        ofSetColor(ofColor(255,255,255));
         
         ofPushMatrix();
         ofScale(1.0f + scaledBlurVelocity.x, 1.0f + scaledBlurVelocity.y);
@@ -128,57 +132,24 @@ void ofApplication::update(){
         fadingTex.draw(0,0);
         ofPopMatrix();
     }
-    else{
-        mainFbo.setActiveDrawBuffer(0);
-        ofClear(255, 255, 255, 0);
-    }
 
-#ifdef USE_MOUSE
-    if (ofGetMousePressed()){
-        
-        float highEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_HIGH)*100.0f;
-
-        ofPoint mousePoint = ofPoint(ofGetMouseX(), ofGetMouseY());
-        mouseVelocity = fabs(mousePoint.distance(lastMousePoint))*100.0f/ofGetFrameRate();
-        lastMousePoint = mousePoint;
-        
-        float saturation = ofMap(mouseVelocity, 0.0f, 100.0f, 255.0f, 180.0f, true);
-        float hue = ((cosf(0.05f*elapsedPhase)+1.0f)/2.0f)*255.0f;
-        float radius = ofMap(highEnergy, 0.2f, 2.0f, 0.0f, (float)ofGetWidth()*MAX_BLOTCH_RADIUS_FACTOR, true);
-        
-        ofSetColor(ofColor::fromHsb(hue, saturation, 255.0f));
-        ofNoFill();
-        ofSetLineWidth(3.0f);
-        
-        ofLine(lastEndPoint, mousePoint);
-        lastEndPoint = mousePoint;
-        
-        if (radius > 0.0f){
-            ofPolyline randomShape;
-            randomShape.addVertex(mousePoint);
-            for (int s=0; s<4; s++){
-                float angle = M_PI*2.0f*ofRandomf();
-                randomShape.addVertex(ofPoint(mousePoint.x + cosf(angle)*radius, mousePoint.y + sinf(angle)*radius));
-            }
-            randomShape.close();
-            randomShape.draw(); 
-        }
-    }
-#else
     ofSetColor(255, 255, 255);
+    handPhysics->update();
     drawHandSprites();
-#endif
     
     if (showTrails){
         ofTexture & mainTex = mainFbo.getTextureReference(0);
         mainFbo.setActiveDrawBuffer(1);
+        ofClear(0,0,0,0);
         ofSetColor(255,255,255);
         blurShader.begin();
         blurShader.setUniformTexture("texSampler", mainTex, 1);
-        mainTex.draw(0,0);
+        drawBillboardRect(0, 0, mainFbo.getWidth(), mainFbo.getHeight());
         blurShader.end();
     }
-    
+
+    mainFbo.setActiveDrawBuffer(0);
+    drawAudioBlobs();
     mainFbo.end();
 }
 
@@ -186,13 +157,13 @@ void ofApplication::update(){
 void ofApplication::draw(){
     
     glDisable(GL_DEPTH_TEST);
+    ofSetColor(255, 255, 255);
+    ofEnableAlphaBlending();
     
     float lowFreq = audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_LOW)*2.0f;
-    float bright = ofMap(lowFreq, 0.0f, 2.0f, 20.0f, 200.0f, true);
+    float bright = ofMap(lowFreq, 0.0f, 2.5f, 20.0f, 200.0f, true);
     ofBackgroundGradient(ofColor::fromHsb(180, 80, bright), ofColor::fromHsb(0, 0, 20));
-    ofSetColor(255, 255, 255);
     mainFbo.draw(0, 0);
-    
     
     if (debugMode){
         stringstream ss;
@@ -218,19 +189,13 @@ void ofApplication::drawHandSprites()
 {
     float hue = ((cosf(0.05f*elapsedPhase)+1.0f)/2.0f)*255.0f;
     spriteColor = ofColor::fromHsb(hue, 255.0f, 255.0f);
-    
-    handPhysics->update();
-    
+        
     float highEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_HIGH)*150.0f;
     
     for (int i=0; i<handPhysics->getNumTrackedHands(); i++){
         
         ofSetColor(255,255,255);
-        ofPoint handPos = handPhysics->getPhysicsStateForHand(i).handPositions[0];
-        handPos *= ofGetWindowSize()/ofPoint(640,480);
-        
-        drawAudioBlobAtPoint(handPos);
-        
+                
         ofPoint hp = handPhysics->getNormalizedSpritePositionForHand(i);
         ofPoint hp1 = handPhysics->getNormalizedSpritePositionForHand(i, 1);
         hp *= ofGetWindowSize();
@@ -239,7 +204,7 @@ void ofApplication::drawHandSprites()
         ofSetColor(spriteColor);
         ofSetLineWidth(10.0f);
         
-        if ((hp1 - hp).length() < 10.0f)
+        if ((hp1 - hp).length() < 5.0f)
         {
             ofFill();
             ofCircle(hp, 5.0f);
@@ -247,31 +212,59 @@ void ofApplication::drawHandSprites()
         else{
             ofLine(hp1, hp);
         }
-        
-
     }
 }
 
-void ofApplication::drawAudioBlobAtPoint(ofPoint &point)
+void ofApplication::drawAudioBlobs()
 {
     ofSetColor(audioBlobColor);
     float highEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_HIGH);
-    float radius = ofMap(highEnergy, 0.01f, 10.0f, 4.0f, MAX_BLOTCH_RADIUS, false);
-    if (radius > 4.0f){
-        ofSetLineWidth(2.0f);
-        ofPolyline randomShape;
-        randomShape.addVertex(point);
-        for (int s=0; s<4; s++){
-            float angle = M_PI*2.0f*ofRandomf();
-            randomShape.addVertex(ofPoint(point.x + cosf(angle)*radius, point.y + sinf(angle)*radius));
+    float radius = ofMap(highEnergy, 0.1f, 10.0f, 4.0f, MAX_BLOTCH_RADIUS, false);
+    
+    for (int i=0; i<handPhysics->getNumTrackedHands(); i++){
+        
+        ofPoint handPos = handPhysics->getPhysicsStateForHand(i).handPositions[0];
+        handPos *= ofGetWindowSize()/ofPoint(640,480);
+        
+        if (radius > 4.0f){
+            ofSetLineWidth(5.0f);
+            ofPolyline randomShape;
+            randomShape.addVertex(handPos);
+            for (int s=0; s<4; s++){
+                float angle = M_PI*2.0f*ofRandomf();
+                randomShape.addVertex(ofPoint(handPos.x + cosf(angle)*radius, handPos.y + sinf(angle)*radius));
+            }
+            randomShape.close();
+            randomShape.draw();
         }
-        randomShape.close();
-        randomShape.draw();
+        else{
+            ofFill();
+            ofCircle(handPos, 4.0f);
+        }
     }
-    else{
-        ofFill();
-        ofCircle(point, 4.0f);
-    }
+}
+
+void ofApplication::drawBillboardRect(int x, int y, int w, int h)
+{
+    GLfloat tex_coords[] = {
+		0,0,
+		w,0,
+		w,h,
+		0,h
+	};
+	GLfloat verts[] = {
+		x,y,
+		x+w,y,
+		x+w,y+h,
+		x,y+h
+	};
+	
+	glEnableClientState( GL_TEXTURE_COORD_ARRAY );
+	glTexCoordPointer(2, GL_FLOAT, 0, tex_coords );
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glVertexPointer(2, GL_FLOAT, 0, verts );
+	glDrawArrays( GL_TRIANGLE_FAN, 0, 4 );
+	glDisableClientState( GL_TEXTURE_COORD_ARRAY );
 }
 
 #pragma mark - Inputs
