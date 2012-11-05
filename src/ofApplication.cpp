@@ -22,9 +22,11 @@ ofApplication::~ofApplication()
         handPhysics = NULL;
     }
     
+#ifdef USE_KINECT
     // prevents crashing on exit (sometimes)
     kinectOpenNI.stop();
     kinectOpenNI.waitForThread();
+#endif
 }
 
 void ofApplication::setup(){
@@ -72,6 +74,7 @@ void ofApplication::setup(){
     audioAnalyzer.setup(audioSettings);
     
     // kinect setup
+#ifdef USE_KINECT
     kinectOpenNI.setup();
     kinectOpenNI.addImageGenerator();
     kinectOpenNI.addDepthGenerator();
@@ -93,10 +96,15 @@ void ofApplication::setup(){
     handPhysics->friction = 0.03f;
     handPhysics->gravity = ofVec2f(0,800.0f);
     handPhysics->physicsEnabled = true;
+#endif
 }
 
 //--------------------------------------------------------------
 void ofApplication::update(){
+    
+#ifdef USE_KINECT
+    handPhysics->update();
+#endif
     
     elapsedPhase = 2.0*M_PI*ofGetElapsedTimef();
 
@@ -134,13 +142,22 @@ void ofApplication::update(){
     }
 
     ofSetColor(255, 255, 255);
-    handPhysics->update();
     drawHandSprites();
     
     if (showTrails){
         ofTexture & mainTex = mainFbo.getTextureReference(0);
         mainFbo.setActiveDrawBuffer(1);
-        ofClear(0,0,0,0);
+//        mainTex.draw(0,0);
+//        //ofClear(0,0,0,0);
+//        glEnable(GL_BLEND);
+//        ofSetColor(0, 0, 0, 254);
+//        glBlendFunc(GL_ZERO,GL_SRC_ALPHA);
+//        ofRect(0, 0, mainFbo.getWidth(), mainFbo.getHeight());
+//        glDisable(GL_BLEND);
+//
+        
+        
+        //ofEnableAlphaBlending();
         ofSetColor(255,255,255);
         blurShader.begin();
         blurShader.setUniformTexture("texSampler", mainTex, 1);
@@ -195,12 +212,17 @@ void ofApplication::drawHandSprites()
     for (int i=0; i<handPhysics->getNumTrackedHands(); i++){
         
         ofSetColor(255,255,255);
-                
+        
+#ifdef USE_KINECT
         ofPoint hp = handPhysics->getNormalizedSpritePositionForHand(i);
         ofPoint hp1 = handPhysics->getNormalizedSpritePositionForHand(i, 1);
+#else
+        // TODO: Make these move
+        ofPoint hp = ofPoint(0,0);
+        ofPoint hp1 = ofPoint(0,1);
+#endif
         hp *= ofGetWindowSize();
         hp1 *= ofGetWindowSize();
-        
         ofSetColor(spriteColor);
         ofSetLineWidth(10.0f);
         
@@ -223,9 +245,12 @@ void ofApplication::drawAudioBlobs()
     
     for (int i=0; i<handPhysics->getNumTrackedHands(); i++){
         
+#ifdef USE_KINECT
         ofPoint handPos = handPhysics->getPhysicsStateForHand(i).handPositions[0];
         handPos *= ofGetWindowSize()/ofPoint(640,480);
-        
+#else
+        ofPoint handPos = ofPoint(0,0);
+#endif
         if (radius > 4.0f){
             ofSetLineWidth(5.0f);
             ofPolyline randomShape;

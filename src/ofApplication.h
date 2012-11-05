@@ -6,7 +6,7 @@
 #include "ofxAudioAnalyzer.h"
 #include "ofxHandPhysics.h"
 
-//#define USE_MOUSE
+#define USE_KINECT
 
 void ofApplicationSetAudioInputDeviceId(int deviceId);
 

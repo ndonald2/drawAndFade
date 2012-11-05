@@ -1,5 +1,5 @@
 
-#define SAT_DECAY       0.98
+#define SAT_DECAY       0.99
 #define ALPHA_DECAY     0.99
 
 // vanilla frag shader
@@ -9,7 +9,7 @@ void main() {
     vec4 color = texture2DRect(texSampler, gl_TexCoord[0].xy);
     color.rgb *= SAT_DECAY;
     color.a = color.a*ALPHA_DECAY;
-    if (color.a <= 0.01){
+    if (color.a <= 0.025){
         color.a = 0.0;
     }
     gl_FragColor = color;
