@@ -9,7 +9,7 @@ void main() {
     vec4 color = texture2DRect(texSampler, gl_TexCoord[0].xy);
     color.rgb *= SAT_DECAY;
     color.a = color.a*ALPHA_DECAY;
-    if (color.a <= 0.025){
+    if (color.a <= 0.03){
         color.a = 0.0;
     }
     gl_FragColor = color;

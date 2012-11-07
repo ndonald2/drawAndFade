@@ -11,10 +11,12 @@
 #include "ofBaseApp.h"
 #include "ofxFft.h"
 
+#define AA_NUM_FREQ_REGIONS 4
 typedef enum {
     AA_FREQ_REGION_LOW = 0,
     AA_FREQ_REGION_MID,
-    AA_FREQ_REGION_HIGH
+    AA_FREQ_REGION_HIGH,
+    AA_FREQ_REGION_ALL
 } ofxAudioAnalyzerRegion;
 
 class ofxAudioAnalyzer : public ofBaseSoundInput{
@@ -31,7 +33,8 @@ public:
     void audioIn(float * input, int bufferSize, int nChannels);
     
     void setLowMidHighRegions(FreqRegion lowRegion, FreqRegion midRegion, FreqRegion highRegion);
-    void setAttackRelease(float attackInMs, float releaseInMs);
+    void setAttackInRegion(int attackInMS, ofxAudioAnalyzerRegion region);
+    void setReleaseInRegion(int releaseInMS, ofxAudioAnalyzerRegion region);
     
     vector<float> getFFTBins();
     vector<float> getPSFData();     // postive spectral flux can be thresholded to detect transients
@@ -47,9 +50,6 @@ public:
         bool         stereo;
         unsigned int sampleRate;
         unsigned int bufferSize;
-        
-        float        attackInMs;
-        float        releaseInMs;
         
         fftWindowType       windowType;
         fftImplementation   implementation;
@@ -87,16 +87,12 @@ private:
     vector<float>   analyzedPSFData;
     vector<float>   storedPSFData;
     
-    float           coefAttack;
-    float           coefRelease;
-    float           signalEnergy;
-    float           regionEnergy[3];
-    float           signalEnergySmoothed;
-    float           regionEnergySmoothed[3];
-    float           signalPSF;
-    float           regionPSF[3];
-    float           signalPSFSmoothed;
-    float           regionPSFSmoothed[3];
+    float           coefAttack[AA_NUM_FREQ_REGIONS];
+    float           coefRelease[AA_NUM_FREQ_REGIONS];
+    float           signalEnergy[AA_NUM_FREQ_REGIONS];
+    float           signalEnergySmoothed[AA_NUM_FREQ_REGIONS];
+    float           signalPSF[AA_NUM_FREQ_REGIONS];
+    float           signalPSFSmoothed[AA_NUM_FREQ_REGIONS];
     FreqRegion      _lowRegion;
     FreqRegion      _midRegion;
     FreqRegion      _highRegion;

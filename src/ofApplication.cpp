@@ -71,8 +71,14 @@ void ofApplication::setup(){
     audioSettings.stereo = true;
     audioSettings.inputDeviceId = inputDeviceId;
     audioSettings.bufferSize = 512;
-    audioSettings.releaseInMs = 200;
     audioAnalyzer.setup(audioSettings);
+    
+    audioAnalyzer.setAttackInRegion(10, AA_FREQ_REGION_LOW);
+    audioAnalyzer.setReleaseInRegion(250, AA_FREQ_REGION_LOW);
+    audioAnalyzer.setAttackInRegion(5, AA_FREQ_REGION_MID);
+    audioAnalyzer.setReleaseInRegion(120, AA_FREQ_REGION_MID);
+    audioAnalyzer.setAttackInRegion(1, AA_FREQ_REGION_HIGH);
+    audioAnalyzer.setReleaseInRegion(80, AA_FREQ_REGION_HIGH);
     
     // kinect setup
 #ifdef USE_KINECT
@@ -112,11 +118,11 @@ void ofApplication::update(){
     // draw to FBO
     
     glDisable(GL_DEPTH_TEST);
+    ofDisableAlphaBlending();
     
     mainFbo.begin();
     ofFill();
     mainFbo.setActiveDrawBuffer(0);
-    ofDisableAlphaBlending();
     ofClear(0,0,0,0);
     ofSetColor(255,255,255);
     
@@ -125,12 +131,17 @@ void ofApplication::update(){
     if (showTrails){
         if (ofGetFrameNum() % 180 == 0)
         {
-            blurVelocity = ofPoint(1.0f,1.0f)*ofRandom(5.0f, 80.0f);
+            blurVelocity = ofPoint(1.0f,1.0f)*ofRandom(5.0f, 50.0f);
             blurDirection = ofPoint(1.0f,1.0f)*ofRandom(-0.2f, 0.2f);
         }
         
-        ofPoint scaledBlurVelocity = blurVelocity/10000.0f;
+        
+        float lowEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW);
+        float velocityBump = ofMap(lowEnergy, 0.2f, 2.0f, 1.0f, 2.0f, true);
+        
+        ofPoint scaledBlurVelocity = blurVelocity*velocityBump/10000.0f;
         ofPoint scaledBlurDirection = (ofPoint(0.5,0.5) + blurDirection) * scaledBlurVelocity;
+
         
         ofPushMatrix();
         ofScale(1.0f + scaledBlurVelocity.x, 1.0f + scaledBlurVelocity.y);
@@ -138,21 +149,21 @@ void ofApplication::update(){
         // re center
         ofPoint translation = -(ofPoint(ofGetWidth(), ofGetHeight())*scaledBlurDirection);
         ofTranslate(translation);
-        fadingTex.draw(0,0);
+        
+        blurShader.begin();
+        blurShader.setUniformTexture("texSampler", fadingTex, 1);
+        drawBillboardRect(0, 0, mainFbo.getWidth(), mainFbo.getHeight());
+        blurShader.end();
+
         ofPopMatrix();
     }
 
     drawHandSprites();
     
     if (showTrails){
-        ofTexture & mainTex = mainFbo.getTextureReference(0);
-        mainFbo.setActiveDrawBuffer(1);
-
         ofSetColor(255,255,255);
-        blurShader.begin();
-        blurShader.setUniformTexture("texSampler", mainTex, 1);
-        drawBillboardRect(0, 0, mainFbo.getWidth(), mainFbo.getHeight());
-        blurShader.end();
+        mainFbo.setActiveDrawBuffer(1);
+        mainFbo.getTextureReference(0).draw(0,0);
     }
 
     mainFbo.setActiveDrawBuffer(0);
@@ -167,8 +178,8 @@ void ofApplication::draw(){
     ofSetColor(255, 255, 255);
     ofEnableAlphaBlending();
     
-    float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*2.0f;
-    float bright = ofMap(lowF, 0.01f, 2.5f, 20.0f, 200.0f, false);
+    float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW);
+    float bright = ofMap(lowF, 0.01f, 2.0f, 20.0f, 160.0f, true);
     ofBackgroundGradient(ofColor::fromHsb(180, 80, bright), ofColor::fromHsb(0, 0, 20));
     mainFbo.draw(0, 0);
     
@@ -218,7 +229,7 @@ void ofApplication::drawHandSprites()
         ofPushMatrix();
         ofTranslate(hp);
         ofRotate(ofRandom(0, 360));
-        ofEllipse(0, 0, 5.0f, ofMap(highPSF, 0.01f, 1.5f, 5.0f, 100.0f, true));
+        ofEllipse(0, 0, 5.0f, ofMap(highPSF, 0.01f, 0.5f, 5.0f, 100.0f, true));
         ofPopMatrix();
         
 //        ofSetLineWidth(10.0f);
@@ -238,7 +249,7 @@ void ofApplication::drawAudioBlobs()
 {
     ofSetColor(audioBlobColor);
     float midEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_MID);
-    float radius = ofMap(midEnergy, 0.1f, 10.0f, 4.0f, MAX_BLOTCH_RADIUS, false);
+    float radius = ofMap(midEnergy, 0.1f, 5.0f, 4.0f, MAX_BLOTCH_RADIUS, false);
     
 #ifdef USE_KINECT
     for (int i=0; i<handPhysics->getNumTrackedHands(); i++)

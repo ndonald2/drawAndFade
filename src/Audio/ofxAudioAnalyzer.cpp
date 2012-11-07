@@ -17,9 +17,6 @@ ofxAudioAnalyzer::Settings::Settings(){
     bufferSize = 1024;
     windowType = OF_FFT_WINDOW_HAMMING;
     implementation = OF_FFT_FFTW;
-    
-    attackInMs = 1.0f;
-    releaseInMs = 150.0f;
 }
 
 ofxAudioAnalyzer::ofxAudioAnalyzer()
@@ -46,25 +43,19 @@ void ofxAudioAnalyzer::setup(Settings settings)
     storedPSFData.resize(fft->getBinSize());
     storedPSFData.assign(fft->getBinSize(), 0);
     
-    signalEnergy = 0.0f;
-    signalEnergySmoothed = 0.0f;
-    memset(regionEnergy, 0, sizeof(float)*3);
-    memset(regionEnergySmoothed, 0, sizeof(float)*3);
-    signalPSF = 0.0f;
-    signalPSFSmoothed = 0.0f;
-    memset(regionPSF, 0, sizeof(float)*3);
-    memset(regionPSFSmoothed, 0, sizeof(float)*3);
-    
-    setAttackRelease(settings.attackInMs, settings.releaseInMs);
+    memset(signalEnergy, 0, sizeof(float)*AA_NUM_FREQ_REGIONS);
+    memset(signalEnergySmoothed, 0, sizeof(float)*AA_NUM_FREQ_REGIONS);
+    memset(signalPSF, 0, sizeof(float)*AA_NUM_FREQ_REGIONS);
+    memset(signalPSFSmoothed, 0, sizeof(float)*AA_NUM_FREQ_REGIONS);
     
     // regions
     _lowRegion.lowerFreq = 40.0f;
     _lowRegion.upperFreq = 160.0f;
     
-    _midRegion.lowerFreq = 160.0f;
-    _midRegion.upperFreq = 2000.0f;
+    _midRegion.lowerFreq = 100.0f;
+    _midRegion.upperFreq = 3000.0f;
     
-    _highRegion.lowerFreq = 2000.0f;
+    _highRegion.lowerFreq = 3000.0f;
     _highRegion.upperFreq = 20000.0f;
     
     // setup audio input stream
@@ -114,16 +105,16 @@ void ofxAudioAnalyzer::audioIn(float *input, int bufferSize, int nChannels)
         energy += analyzedFFTData[i];
     }
     
-    signalEnergy = energy;
-    signalPSF = totalFlux;
+    signalEnergy[AA_FREQ_REGION_ALL] = energy;
+    signalPSF[AA_FREQ_REGION_ALL] = totalFlux;
     
-    float coef = energy > signalEnergySmoothed ? coefAttack : coefRelease;
-    float smoothedEnergy = signalEnergySmoothed*coef + signalEnergy*(1.0f-coef);
-    signalEnergySmoothed = smoothedEnergy;
+    float coef = energy > signalEnergySmoothed[AA_FREQ_REGION_ALL] ? coefAttack[AA_FREQ_REGION_ALL] : coefRelease[AA_FREQ_REGION_ALL];
+    float smoothedEnergy = signalEnergySmoothed[AA_FREQ_REGION_ALL]*coef + signalEnergy[AA_FREQ_REGION_ALL]*(1.0f-coef);
+    signalEnergySmoothed[AA_FREQ_REGION_ALL] = smoothedEnergy;
     
-    coef = totalFlux > signalPSFSmoothed ? coefAttack : coefRelease;
-    float smoothedFlux = signalPSFSmoothed*coef + signalPSF*(1.0f-coef);
-    signalPSFSmoothed = smoothedFlux;
+    coef = totalFlux > signalPSFSmoothed[AA_FREQ_REGION_ALL] ? coefAttack[AA_FREQ_REGION_ALL] : coefRelease[AA_FREQ_REGION_ALL];
+    float smoothedFlux = signalPSFSmoothed[AA_FREQ_REGION_ALL]*coef + signalPSF[AA_FREQ_REGION_ALL]*(1.0f-coef);
+    signalPSFSmoothed[AA_FREQ_REGION_ALL] = smoothedFlux;
     
     // get region fft & PSF
     FreqRegion fRegion;
@@ -142,7 +133,7 @@ void ofxAudioAnalyzer::audioIn(float *input, int bufferSize, int nChannels)
                 break;
                 
             default:
-                return 0.0f;
+                continue;
         }
         
         unsigned int lowerBin = binForFrequency(fRegion.lowerFreq);
@@ -158,16 +149,16 @@ void ofxAudioAnalyzer::audioIn(float *input, int bufferSize, int nChannels)
             } while (++b <= upperBin);
         }
         
-        regionPSF[region] = trPSF;
-        regionEnergy[region] = trEnergy;
+        signalPSF[region] = trPSF;
+        signalEnergy[region] = trEnergy;
         
-        float coef = trPSF >= regionPSFSmoothed[region] ? coefAttack : coefRelease;
-        float psfSmoothed = regionPSFSmoothed[region]*coef + trPSF*(1.0f-coef);
-        regionPSFSmoothed[region] = psfSmoothed;
+        float coef = trPSF >= signalPSFSmoothed[region] ? coefAttack[region] : coefRelease[region];
+        float psfSmoothed = signalPSFSmoothed[region]*coef + trPSF*(1.0f-coef);
+        signalPSFSmoothed[region] = psfSmoothed;
         
-        coef = trEnergy >= regionEnergySmoothed[region] ? coefAttack : coefRelease;
-        float enSmoothed = regionEnergySmoothed[region]*coef + trEnergy*(1.0f-coef);
-        regionEnergySmoothed[region] = enSmoothed;
+        coef = trEnergy >= signalEnergySmoothed[region] ? coefAttack[region] : coefRelease[region];
+        float enSmoothed = signalEnergySmoothed[region]*coef + trEnergy*(1.0f-coef);
+        signalEnergySmoothed[region] = enSmoothed;
     }
 
     
@@ -188,15 +179,28 @@ void ofxAudioAnalyzer::setLowMidHighRegions(FreqRegion lowRegion, FreqRegion mid
     _highRegion = highRegion;
 }
 
-void ofxAudioAnalyzer::setAttackRelease(float attackInMs, float releaseInMs)
+void ofxAudioAnalyzer::setAttackInRegion(int attackInMS, ofxAudioAnalyzerRegion region)
 {
-    _settings.attackInMs = attackInMs;
-    _settings.releaseInMs = releaseInMs;
-    coefAttack = 1.0f - (1.0f/(attackInMs*0.001f*_settings.sampleRate/_settings.bufferSize));
-    coefRelease = 1.0f - (1.0f/(releaseInMs*0.001f*_settings.sampleRate/_settings.bufferSize));
+    if (region >= AA_NUM_FREQ_REGIONS || region < 0)
+    {
+        ofLog(OF_LOG_ERROR, "Invalid frequency region");
+        return;
+    }
     
-    coefAttack = CLAMP(coefAttack, 0.0f, 0.9999f);
-    coefRelease = CLAMP(coefRelease, 0.0f, 0.9999f);
+    float newCoef = 1.0f - (1.0f/(attackInMS*0.001f*_settings.sampleRate/_settings.bufferSize));
+    coefAttack[region] = CLAMP(newCoef, 0.0f, 0.99999999f);
+}
+
+void ofxAudioAnalyzer::setReleaseInRegion(int releaseInMS, ofxAudioAnalyzerRegion region)
+{
+    if (region >= AA_NUM_FREQ_REGIONS || region < 0)
+    {
+        ofLog(OF_LOG_ERROR, "Invalid frequency region");
+        return;
+    }
+    
+    float newCoef = 1.0f - (1.0f/(releaseInMS*0.001f*_settings.sampleRate/_settings.bufferSize));
+    coefRelease[region] = CLAMP(newCoef, 0.0f, 0.99999999f);
 }
 
 vector<float> ofxAudioAnalyzer::getFFTBins()
@@ -228,28 +232,29 @@ vector<float> ofxAudioAnalyzer::getPCMData()
 
 float ofxAudioAnalyzer::getSignalEnergy(bool smoothed)
 {
-    return smoothed ? signalEnergySmoothed : signalEnergySmoothed;
+    return smoothed ? signalEnergySmoothed[AA_FREQ_REGION_ALL] : signalEnergySmoothed[AA_FREQ_REGION_ALL];
 }
 
 float ofxAudioAnalyzer::getSignalEnergyInRegion(ofxAudioAnalyzerRegion region, bool smoothed)
 {
-    if (region < 0 || region > 3) return 0.0f;
+    if (region < 0 || region > 3)
+        return 0.0f;
     
-    return smoothed ? regionEnergySmoothed[region] : regionEnergy[region];
+    return smoothed ? signalEnergySmoothed[region] : signalEnergy[region];
 }
 
 float ofxAudioAnalyzer::getTotalPSF(bool smoothed)
 {
-    return smoothed ? signalPSFSmoothed : signalPSF;
+    return smoothed ? signalPSFSmoothed[AA_FREQ_REGION_ALL] : signalPSF[AA_FREQ_REGION_ALL];
 }
 
 float ofxAudioAnalyzer::getPSFinRegion(ofxAudioAnalyzerRegion region, bool smoothed)
 {
     
-    if (region < 0 || region > 3)
+    if (region < 0 || region >= AA_NUM_FREQ_REGIONS)
         return 0.0f;
     
-    return smoothed ? regionPSFSmoothed[region] : regionPSF[region];
+    return smoothed ? signalPSFSmoothed[region] : signalPSF[region];
 }
 
 unsigned int ofxAudioAnalyzer::binForFrequency(float freqInHz)
