@@ -38,7 +38,7 @@ void ofApplication::setup(){
     // setup animation parameters
     debugMode = false;
     showTrails = true;
-    audioBlobColor = ofColor(180,180,180);
+    audioBlobColor = ofColor(220,220,220);
     
     ofSetCircleResolution(50);
     
@@ -71,6 +71,7 @@ void ofApplication::setup(){
     audioSettings.stereo = true;
     audioSettings.inputDeviceId = inputDeviceId;
     audioSettings.bufferSize = 512;
+    audioSettings.releaseInMs = 200;
     audioAnalyzer.setup(audioSettings);
     
     // kinect setup
@@ -141,23 +142,12 @@ void ofApplication::update(){
         ofPopMatrix();
     }
 
-    ofSetColor(255, 255, 255);
     drawHandSprites();
     
     if (showTrails){
         ofTexture & mainTex = mainFbo.getTextureReference(0);
         mainFbo.setActiveDrawBuffer(1);
-//        mainTex.draw(0,0);
-//        //ofClear(0,0,0,0);
-//        glEnable(GL_BLEND);
-//        ofSetColor(0, 0, 0, 254);
-//        glBlendFunc(GL_ZERO,GL_SRC_ALPHA);
-//        ofRect(0, 0, mainFbo.getWidth(), mainFbo.getHeight());
-//        glDisable(GL_BLEND);
-//
-        
-        
-        //ofEnableAlphaBlending();
+
         ofSetColor(255,255,255);
         blurShader.begin();
         blurShader.setUniformTexture("texSampler", mainTex, 1);
@@ -177,8 +167,8 @@ void ofApplication::draw(){
     ofSetColor(255, 255, 255);
     ofEnableAlphaBlending();
     
-    float lowFreq = audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_LOW)*2.0f;
-    float bright = ofMap(lowFreq, 0.0f, 2.5f, 20.0f, 200.0f, true);
+    float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*2.0f;
+    float bright = ofMap(lowF, 0.01f, 2.5f, 20.0f, 200.0f, false);
     ofBackgroundGradient(ofColor::fromHsb(180, 80, bright), ofColor::fromHsb(0, 0, 20));
     mainFbo.draw(0, 0);
     
@@ -207,52 +197,61 @@ void ofApplication::drawHandSprites()
     float hue = ((cosf(0.05f*elapsedPhase)+1.0f)/2.0f)*255.0f;
     spriteColor = ofColor::fromHsb(hue, 255.0f, 255.0f);
         
-    float highEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_HIGH)*150.0f;
-    
-    for (int i=0; i<handPhysics->getNumTrackedHands(); i++){
-        
-        ofSetColor(255,255,255);
-        
+    float highPSF = audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_HIGH);
+
 #ifdef USE_KINECT
+    for (int i=0; i<handPhysics->getNumTrackedHands(); i++)
+    {
+    
         ofPoint hp = handPhysics->getNormalizedSpritePositionForHand(i);
         ofPoint hp1 = handPhysics->getNormalizedSpritePositionForHand(i, 1);
-#else
-        // TODO: Make these move
-        ofPoint hp = ofPoint(0,0);
-        ofPoint hp1 = ofPoint(0,1);
-#endif
         hp *= ofGetWindowSize();
         hp1 *= ofGetWindowSize();
+#else
+    {
+        ofPoint hp = (ofGetWindowSize()/2.0f) + ofPoint(cosf(elapsedPhase/2.0f), sinf(elapsedPhase/2.0f))*100.0f;
+        ofPoint hp1 = hp;
+#endif
         ofSetColor(spriteColor);
-        ofSetLineWidth(10.0f);
+        ofSetLineWidth(2.0f);
+        ofNoFill();
+        ofPushMatrix();
+        ofTranslate(hp);
+        ofRotate(ofRandom(0, 360));
+        ofEllipse(0, 0, 5.0f, ofMap(highPSF, 0.01f, 1.5f, 5.0f, 100.0f, true));
+        ofPopMatrix();
         
-        if ((hp1 - hp).length() < 5.0f)
-        {
-            ofFill();
-            ofCircle(hp, 5.0f);
-        }
-        else{
-            ofLine(hp1, hp);
-        }
+//        ofSetLineWidth(10.0f);
+//        
+//        if ((hp1 - hp).length() < 5.0f)
+//        {
+//            ofFill();
+//            ofCircle(hp, 5.0f);
+//        }
+//        else{
+//            ofLine(hp1, hp);
+//        }
     }
 }
 
 void ofApplication::drawAudioBlobs()
 {
     ofSetColor(audioBlobColor);
-    float highEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_HIGH);
-    float radius = ofMap(highEnergy, 0.1f, 10.0f, 4.0f, MAX_BLOTCH_RADIUS, false);
+    float midEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_MID);
+    float radius = ofMap(midEnergy, 0.1f, 10.0f, 4.0f, MAX_BLOTCH_RADIUS, false);
     
-    for (int i=0; i<handPhysics->getNumTrackedHands(); i++){
-        
 #ifdef USE_KINECT
+    for (int i=0; i<handPhysics->getNumTrackedHands(); i++)
+    {
+        
         ofPoint handPos = handPhysics->getPhysicsStateForHand(i).handPositions[0];
         handPos *= ofGetWindowSize()/ofPoint(640,480);
 #else
-        ofPoint handPos = ofPoint(0,0);
+    {
+        ofPoint handPos = ofGetWindowSize()/2.0f;
 #endif
         if (radius > 4.0f){
-            ofSetLineWidth(5.0f);
+            ofSetLineWidth(2.0f);
             ofPolyline randomShape;
             randomShape.addVertex(handPos);
             for (int s=0; s<4; s++){

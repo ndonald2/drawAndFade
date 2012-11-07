@@ -1,6 +1,6 @@
 
-#define SAT_DECAY       0.99
-#define ALPHA_DECAY     0.99
+#define SAT_DECAY       0.98
+#define ALPHA_DECAY     0.994
 
 // vanilla frag shader
 uniform sampler2DRect texSampler;
