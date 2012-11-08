@@ -229,7 +229,7 @@ void ofApplication::drawHandSprites()
         ofPushMatrix();
         ofTranslate(hp);
         ofRotate(ofRandom(0, 360));
-        ofEllipse(0, 0, 5.0f, ofMap(highPSF, 0.01f, 0.5f, 5.0f, 100.0f, true));
+        ofEllipse(0, 0, 5.0f, ofMap(highPSF, 0.01f, 1.0f, 5.0f, 100.0f, true));
         ofPopMatrix();
         
 //        ofSetLineWidth(10.0f);
@@ -306,15 +306,17 @@ void ofApplication::drawBillboardRect(int x, int y, int w, int h)
 
 //--------------------------------------------------------------
 void ofApplication::keyPressed(int key){
+    
     switch (key) {
             
         case 'd':
             debugMode = !debugMode;
+            break;
             
         case 't':
             showTrails = !showTrails;
             break;
-            
+                        
         default:
             break;
     }

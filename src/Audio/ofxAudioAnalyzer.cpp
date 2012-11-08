@@ -58,6 +58,12 @@ void ofxAudioAnalyzer::setup(Settings settings)
     _highRegion.lowerFreq = 3000.0f;
     _highRegion.upperFreq = 20000.0f;
     
+    // default attack release
+    for (ofxAudioAnalyzerRegion region = AA_FREQ_REGION_LOW; region < AA_NUM_FREQ_REGIONS; region++){
+        setAttackInRegion(1.0f, region);
+        setReleaseInRegion(150.0f, region);
+    }
+    
     // setup audio input stream
     inputStream.setDeviceID(settings.inputDeviceId);
     inputStream.setInput(this);
