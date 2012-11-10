@@ -2,6 +2,7 @@
 
 #include "ofMain.h"
 #include "ofxOpenNI.h"
+#include "ofxHardwareDriver.h"
 #include "ofxOpenCv.h"
 #include "ofxAudioAnalyzer.h"
 #include "ofxHandPhysics.h"
@@ -52,7 +53,9 @@ class ofApplication : public ofBaseApp{
     
         // kinect
         ofxOpenNI                   kinectOpenNI;
+        ofxHardwareDriver           kinectDriver;
         ofxHandPhysicsManager *     handPhysics;
+        int                         kinectAngle;
     
         // animation options
         bool        debugMode;

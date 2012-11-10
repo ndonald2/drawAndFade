@@ -39,6 +39,7 @@
 		01A1C668163EF35D004FFED0 /* libXnVFeatures_1_5_2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C65A163EF35D004FFED0 /* libXnVFeatures_1_5_2.dylib */; };
 		01A1C669163EF35D004FFED0 /* libXnVHandGenerator_1_5_2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C65B163EF35D004FFED0 /* libXnVHandGenerator_1_5_2.dylib */; };
 		01A1C66A163EF35D004FFED0 /* libXnVNite_1_5_2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C65C163EF35D004FFED0 /* libXnVNite_1_5_2.dylib */; };
+		01D12D8E164EC2650050A17F /* ofxHardwareDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 01D12D8C164EC2650050A17F /* ofxHardwareDriver.cpp */; };
 		01E4BDEE163329C8003A4BCA /* ofxAudioAnalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 01E4BDEC163329C8003A4BCA /* ofxAudioAnalyzer.cpp */; };
 		01F6FD2C1631D0AA00C5A10B /* GLView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 01F6FD271631D0AA00C5A10B /* GLView.mm */; };
 		01F6FD2D1631D0AA00C5A10B /* ofxCocoaDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 01F6FD291631D0AA00C5A10B /* ofxCocoaDelegate.mm */; };
@@ -369,6 +370,8 @@
 		01A1C65A163EF35D004FFED0 /* libXnVFeatures_1_5_2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libXnVFeatures_1_5_2.dylib; sourceTree = "<group>"; };
 		01A1C65B163EF35D004FFED0 /* libXnVHandGenerator_1_5_2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libXnVHandGenerator_1_5_2.dylib; sourceTree = "<group>"; };
 		01A1C65C163EF35D004FFED0 /* libXnVNite_1_5_2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libXnVNite_1_5_2.dylib; sourceTree = "<group>"; };
+		01D12D8C164EC2650050A17F /* ofxHardwareDriver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxHardwareDriver.cpp; sourceTree = "<group>"; };
+		01D12D8D164EC2650050A17F /* ofxHardwareDriver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxHardwareDriver.h; sourceTree = "<group>"; };
 		01E4BDEC163329C8003A4BCA /* ofxAudioAnalyzer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxAudioAnalyzer.cpp; sourceTree = "<group>"; };
 		01E4BDED163329C8003A4BCA /* ofxAudioAnalyzer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxAudioAnalyzer.h; sourceTree = "<group>"; };
 		01F6FD261631D0AA00C5A10B /* GLView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GLView.h; sourceTree = "<group>"; };
@@ -1045,6 +1048,8 @@
 		01A1C60B163EF2F9004FFED0 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				01D12D8C164EC2650050A17F /* ofxHardwareDriver.cpp */,
+				01D12D8D164EC2650050A17F /* ofxHardwareDriver.h */,
 				01A1C60C163EF2F9004FFED0 /* ofxOpenNI.cpp */,
 				01A1C60D163EF2F9004FFED0 /* ofxOpenNI.h */,
 				01A1C60E163EF2F9004FFED0 /* ofxOpenNITypes.cpp */,
@@ -1320,6 +1325,7 @@
 				01A1C643163EF2F9004FFED0 /* ofxOpenNI.cpp in Sources */,
 				01A1C644163EF2F9004FFED0 /* ofxOpenNITypes.cpp in Sources */,
 				014BFFF7163F04AE003A4B5F /* ofxHandPhysics.cpp in Sources */,
+				01D12D8E164EC2650050A17F /* ofxHardwareDriver.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,6 +1,6 @@
 #include "ofApplication.h"
 
-#define MAX_BLOTCH_RADIUS    150.0f
+#define MAX_BLOTCH_RADIUS    0.2
 
 static int inputDeviceId = 0;
 
@@ -31,7 +31,7 @@ ofApplication::~ofApplication()
 
 void ofApplication::setup(){
     
-    ofSetFrameRate(30);
+    //ofSetFrameRate(30);
     ofSetVerticalSync(true);
     ofEnableSmoothing();
     
@@ -82,6 +82,11 @@ void ofApplication::setup(){
     
     // kinect setup
 #ifdef USE_KINECT
+    
+    kinectDriver.setup();
+    kinectAngle = 0;
+    kinectDriver.setTiltAngle(kinectAngle);
+    
     kinectOpenNI.setup();
     kinectOpenNI.addImageGenerator();
     kinectOpenNI.addDepthGenerator();
@@ -249,7 +254,7 @@ void ofApplication::drawAudioBlobs()
 {
     ofSetColor(audioBlobColor);
     float midEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_MID);
-    float radius = ofMap(midEnergy, 0.1f, 5.0f, 4.0f, MAX_BLOTCH_RADIUS, false);
+    float radius = ofMap(midEnergy, 0.1f, 5.0f, 4.0f, MAX_BLOTCH_RADIUS*ofGetWidth(), false);
     
 #ifdef USE_KINECT
     for (int i=0; i<handPhysics->getNumTrackedHands(); i++)
@@ -308,6 +313,16 @@ void ofApplication::drawBillboardRect(int x, int y, int w, int h)
 void ofApplication::keyPressed(int key){
     
     switch (key) {
+            
+        case OF_KEY_UP:
+            kinectAngle = CLAMP(kinectAngle + 1, -30, 30);
+            kinectDriver.setTiltAngle(kinectAngle);
+            break;
+            
+        case OF_KEY_DOWN:
+            kinectAngle = CLAMP(kinectAngle - 1, -30, 30);
+            kinectDriver.setTiltAngle(kinectAngle);
+            break;
             
         case 'd':
             debugMode = !debugMode;
