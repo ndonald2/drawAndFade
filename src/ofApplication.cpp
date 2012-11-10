@@ -90,7 +90,6 @@ void ofApplication::setup(){
     kinectOpenNI.setup();
     kinectOpenNI.addImageGenerator();
     kinectOpenNI.addDepthGenerator();
-
     
     kinectOpenNI.addHandsGenerator();
     kinectOpenNI.addAllHandFocusGestures();
@@ -107,7 +106,7 @@ void ofApplication::setup(){
 //    user.setUseMaskTexture(true);
 //    kinectOpenNI.setBaseUserClass(user);
     
-    kinectOpenNI.setThreadSleep(10000);
+    kinectOpenNI.setThreadSleep(25000);
     kinectOpenNI.setRegister(true);
     kinectOpenNI.setMirror(true);
     kinectOpenNI.setSafeThreading(true);
@@ -126,7 +125,7 @@ void ofApplication::setup(){
 void ofApplication::update(){
     
 #ifdef USE_KINECT
-    kinectOpenNI.update();
+//  kinectOpenNI.update();
     handPhysics->update();
 #endif
     
@@ -185,6 +184,7 @@ void ofApplication::update(){
 
     mainFbo.setActiveDrawBuffer(0);
     drawAudioBlobs();
+    
     mainFbo.end();
 }
 

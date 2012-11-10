@@ -56,13 +56,13 @@ void ofxHandPhysicsManager::update()
         for (int th = 0; th < _trackedUserOrHandIDs.size(); th++)
         {
             XnUserID userID = _trackedUserOrHandIDs[th];
-            ofPoint & handPosition = _openNIDevice.getTrackedUser(th).getJoint(JOINT_LEFT_HAND).getProjectivePosition();
-            ofxHandPhysicsState & physState = _trackedUserHandPhysicsL[userID];
-            updatePhysState(physState, handPosition);
+            ofPoint & handPositionL = _openNIDevice.getTrackedUser(th).getJoint(JOINT_LEFT_HAND).getProjectivePosition();
+            ofxHandPhysicsState & physStateL = _trackedUserHandPhysicsL[userID];
+            updatePhysState(physStateL, handPositionL);
             
-            handPosition = _openNIDevice.getTrackedUser(th).getJoint(JOINT_RIGHT_HAND).getProjectivePosition();
-            physState = _trackedUserHandPhysicsR[userID];
-            updatePhysState(physState, handPosition);
+            ofPoint & handPositionR = _openNIDevice.getTrackedUser(th).getJoint(JOINT_RIGHT_HAND).getProjectivePosition();
+            ofxHandPhysicsState & physStateR = _trackedUserHandPhysicsR[userID];
+            updatePhysState(physStateR, handPositionR);
         }
 
     }
@@ -84,23 +84,11 @@ unsigned int ofxHandPhysicsManager::getNumTrackedHands()
 
 ofxHandPhysicsManager::ofxHandPhysicsState ofxHandPhysicsManager::getPhysicsStateForHand(unsigned int i)
 {
-    if (i >= _trackedUserOrHandIDs.size())
-    {
-        ofLog(OF_LOG_ERROR, "ofxHandPhysicsManager::getPhysicsStateForHand - index out of bounds");
-        return ofxHandPhysicsState();
-    }
-    
     return handPhysicsForIndex(i);
 }
 
 ofPoint ofxHandPhysicsManager::getNormalizedSpritePositionForHand(unsigned int i, unsigned int stepIndex)
 {
-    if (i >= _trackedUserOrHandIDs.size())
-    {
-        ofLog(OF_LOG_ERROR, "ofxHandPhysicsManager::getNormalizedPositionForHand - index out of bounds");
-        return ofPoint();
-    }
-    
     if (_width == 0.0f || _height == 0.0f)
     {
         _width = _openNIDevice.getWidth();
@@ -121,12 +109,6 @@ ofPoint ofxHandPhysicsManager::getNormalizedSpritePositionForHand(unsigned int i
 
 float ofxHandPhysicsManager::getAbsSpriteVelocityForHand(unsigned int i)
 {
-    if (i >= _trackedUserOrHandIDs.size())
-    {
-        ofLog(OF_LOG_ERROR, "ofxHandPhysicsManager::getNormalizedPositionForHand - index out of bounds");
-        return 0.0f;
-    }
-    
     return handPhysicsForIndex(i).spriteVelocity.length();
 }
 
@@ -225,17 +207,32 @@ void ofxHandPhysicsManager::handEvent(ofxOpenNIHandEvent & event)
 
 ofxHandPhysicsManager::ofxHandPhysicsState & ofxHandPhysicsManager::handPhysicsForIndex(int index){
     if (_usingUserGenerator){
+        
+        if (index/2 >= _trackedUserOrHandIDs.size())
+        {
+            ofLog(OF_LOG_ERROR, "ofxHandPhysicsManager::handPhysicsForIndex - index out of bounds");
+            return defaultPhysState;
+        }
+        
+        
         int uIndex = index/2;
         int hIndex = index % 2;
         
         if (hIndex == 0){
-            return _trackedUserHandPhysicsL[uIndex];
+            return _trackedUserHandPhysicsL[_trackedUserOrHandIDs[uIndex]];
         }
         else{
-            return _trackedUserHandPhysicsR[uIndex];
+            return _trackedUserHandPhysicsR[_trackedUserOrHandIDs[uIndex]];
         }
     }
     else{
+        
+        if (index >= _trackedUserOrHandIDs.size())
+        {
+            ofLog(OF_LOG_ERROR, "ofxHandPhysicsManager::handPhysicsForIndex - index out of bounds");
+            return defaultPhysState;
+        }
+        
         return _trackedHandPhysics[_trackedUserOrHandIDs[index]];
     }
     

@@ -69,6 +69,7 @@ private:
     void handEvent(ofxOpenNIHandEvent & event);
     
     ofxHandPhysicsState & handPhysicsForIndex(int index);
+    ofxHandPhysicsState defaultPhysState;
     
     float   _width;
     float   _height;
