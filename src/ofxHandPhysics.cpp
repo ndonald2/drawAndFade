@@ -114,7 +114,7 @@ float ofxHandPhysicsManager::getAbsSpriteVelocityForHand(unsigned int i)
 
 void ofxHandPhysicsManager::updatePhysState(ofxHandPhysicsManager::ofxHandPhysicsState &physState, ofPoint &handPosition)
 {
-    double currentTime = (double)ofGetSystemTime()/1000.0;
+    float currentTime = ofGetElapsedTimef();
     
     if (physState.isNew){
         physState.spritePositions.assign(MAX_POINT_HISTORY, handPosition);

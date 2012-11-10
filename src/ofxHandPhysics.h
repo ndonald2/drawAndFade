@@ -53,7 +53,7 @@ public:
         ofVec2f spriteVelocity;
         ofVec2f spriteAcceleration;
         
-        double  lastUpdateTime;
+        float  lastUpdateTime;
         
         bool    isNew;
 

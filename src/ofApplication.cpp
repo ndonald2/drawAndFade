@@ -31,7 +31,6 @@ ofApplication::~ofApplication()
 
 void ofApplication::setup(){
     
-    //ofSetFrameRate(30);
     ofSetVerticalSync(true);
     ofEnableSmoothing();
     
@@ -101,18 +100,19 @@ void ofApplication::setup(){
 //    
 //    ofxOpenNIUser user;
 //    user.setUsePointCloud(false);
-//    user.setUseSkeleton(true);
+//    user.setUseSkeleton(false);
 //    user.setUseMaskPixels(true);
-//    user.setUseMaskTexture(true);
+//    user.setUseMaskTexture(false);
 //    kinectOpenNI.setBaseUserClass(user);
     
-    kinectOpenNI.setThreadSleep(25000);
+    kinectOpenNI.setThreadSleep(30000);
+    kinectOpenNI.setSafeThreading(true);
     kinectOpenNI.setRegister(true);
     kinectOpenNI.setMirror(true);
-    kinectOpenNI.setSafeThreading(true);
+    
     kinectOpenNI.start();
     
-    handPhysics = new ofxHandPhysicsManager(kinectOpenNI, false);
+    handPhysics = new ofxHandPhysicsManager(kinectOpenNI);
     handPhysics->restDistance = 40.0f;
     handPhysics->smoothCoef = 0.75f;
     handPhysics->friction = 0.03f;
@@ -124,8 +124,10 @@ void ofApplication::setup(){
 //--------------------------------------------------------------
 void ofApplication::update(){
     
+    double dTime = ofGetElapsedTimef() - ofGetLastFrameTime();
+    
 #ifdef USE_KINECT
-//  kinectOpenNI.update();
+    kinectOpenNI.update();
     handPhysics->update();
 #endif
     
@@ -152,10 +154,10 @@ void ofApplication::update(){
         }
         
         
-        float lowEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW);
-        float velocityBump = ofMap(lowEnergy, 0.2f, 2.0f, 1.0f, 3.0f, true);
+//        float lowEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW);
+//        float velocityBump = ofMap(lowEnergy, 0.2f, 2.0f, 1.0f, 3.0f, true);
         
-        ofPoint scaledBlurVelocity = blurVelocity*velocityBump/10000.0f;
+        ofPoint scaledBlurVelocity = blurVelocity*dTime*0.000001;
         ofPoint scaledBlurDirection = (ofPoint(0.5,0.5) + blurDirection) * scaledBlurVelocity;
 
         
