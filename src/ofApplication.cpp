@@ -33,6 +33,7 @@ void ofApplication::setup(){
     
     ofSetVerticalSync(true);
     ofEnableSmoothing();
+    ofEnableArbTex();
     
     // setup animation parameters
     debugMode = false;
@@ -40,7 +41,7 @@ void ofApplication::setup(){
     audioBlobColor = ofColor(220,220,220);
     
     ofSetCircleResolution(50);
-    
+        
 #ifdef USE_MOUSE
     mouseVelocity = 0.0f;
 #endif
@@ -61,7 +62,8 @@ void ofApplication::setup(){
     ofClear(0,0,0,0);
     mainFbo.end();
     
-    blurShader.load("shaders/blur.vert", "shaders/blur.frag");
+    trailsShader.load("shaders/trails.vert", "shaders/trails.frag");
+    userOutlineShader.load("shaders/userOutline.vert", "shaders/userOutline.frag");
     blurDirection = ofPoint(0,0);
     blurVelocity = ofPoint(5.0f,5.0f);
     
@@ -80,7 +82,7 @@ void ofApplication::setup(){
     audioAnalyzer.setReleaseInRegion(80, AA_FREQ_REGION_HIGH);
     
     // kinect setup
-#ifdef USE_KINECT
+#ifdef USE_KINECT    
     
     kinectDriver.setup();
     kinectAngle = 0;
@@ -93,6 +95,9 @@ void ofApplication::setup(){
     kinectOpenNI.addHandsGenerator();
     kinectOpenNI.addAllHandFocusGestures();
     kinectOpenNI.setMaxNumHands(2);
+    
+    kinectOpenNI.setUseDepthRawPixels(true);
+    kinectOpenNI.setDepthColoring(COLORING_GREY);
     
     // setup user generator
 //    kinectOpenNI.addUserGenerator();
@@ -168,10 +173,10 @@ void ofApplication::update(){
         ofPoint translation = -(ofPoint(ofGetWidth(), ofGetHeight())*scaledBlurDirection);
         ofTranslate(translation);
         
-        blurShader.begin();
-        blurShader.setUniformTexture("texSampler", fadingTex, 1);
-        drawBillboardRect(0, 0, mainFbo.getWidth(), mainFbo.getHeight());
-        blurShader.end();
+        trailsShader.begin();
+        trailsShader.setUniformTexture("texSampler", fadingTex, 1);
+        drawBillboardRect(0, 0, ofGetWidth(), ofGetHeight());
+        trailsShader.end();
 
         ofPopMatrix();
     }
@@ -201,8 +206,10 @@ void ofApplication::draw(){
     float bright = ofMap(lowF, 0.01f, 2.0f, 20.0f, 160.0f, true);
     ofBackgroundGradient(ofColor::fromHsb(180, 80, bright), ofColor::fromHsb(0, 0, 20));
     mainFbo.draw(0, 0);
-    
+
     if (debugMode){
+        
+        ofSetColor(255, 255, 255);
         stringstream ss;
         ss << setprecision(2);
         ss << "Audio Signal Energy: " << audioAnalyzer.getSignalEnergy();

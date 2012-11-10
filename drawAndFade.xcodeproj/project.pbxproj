@@ -201,8 +201,6 @@
 		012D563D162CF133002ED710 /* ofxCvShortImage.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxCvShortImage.cpp; sourceTree = "<group>"; };
 		012D563E162CF133002ED710 /* ofxCvShortImage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxCvShortImage.h; sourceTree = "<group>"; };
 		012D563F162CF133002ED710 /* ofxOpenCv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxOpenCv.h; sourceTree = "<group>"; };
-		012D5658162D02E2002ED710 /* blur.frag */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.glsl; path = blur.frag; sourceTree = "<group>"; };
-		012D5659162D02E2002ED710 /* blur.vert */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.glsl; path = blur.vert; sourceTree = "<group>"; };
 		014BFFF5163F04AE003A4B5F /* ofxHandPhysics.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxHandPhysics.cpp; sourceTree = "<group>"; };
 		014BFFF6163F04AE003A4B5F /* ofxHandPhysics.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxHandPhysics.h; sourceTree = "<group>"; };
 		01655737163332F10055185A /* fftw3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fftw3.h; sourceTree = "<group>"; };
@@ -370,6 +368,10 @@
 		01A1C65A163EF35D004FFED0 /* libXnVFeatures_1_5_2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libXnVFeatures_1_5_2.dylib; sourceTree = "<group>"; };
 		01A1C65B163EF35D004FFED0 /* libXnVHandGenerator_1_5_2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libXnVHandGenerator_1_5_2.dylib; sourceTree = "<group>"; };
 		01A1C65C163EF35D004FFED0 /* libXnVNite_1_5_2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libXnVNite_1_5_2.dylib; sourceTree = "<group>"; };
+		01D0E6CD164F133F000D6B34 /* trails.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = trails.frag; sourceTree = "<group>"; };
+		01D0E6CE164F133F000D6B34 /* trails.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = trails.vert; sourceTree = "<group>"; };
+		01D0E6CF164F133F000D6B34 /* userOutline.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = userOutline.frag; sourceTree = "<group>"; };
+		01D0E6D0164F133F000D6B34 /* userOutline.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = userOutline.vert; sourceTree = "<group>"; };
 		01D12D8C164EC2650050A17F /* ofxHardwareDriver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxHardwareDriver.cpp; sourceTree = "<group>"; };
 		01D12D8D164EC2650050A17F /* ofxHardwareDriver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxHardwareDriver.h; sourceTree = "<group>"; };
 		01E4BDEC163329C8003A4BCA /* ofxAudioAnalyzer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxAudioAnalyzer.cpp; sourceTree = "<group>"; };
@@ -733,8 +735,10 @@
 		012D5657162D021E002ED710 /* shaders */ = {
 			isa = PBXGroup;
 			children = (
-				012D5658162D02E2002ED710 /* blur.frag */,
-				012D5659162D02E2002ED710 /* blur.vert */,
+				01D0E6CD164F133F000D6B34 /* trails.frag */,
+				01D0E6CE164F133F000D6B34 /* trails.vert */,
+				01D0E6CF164F133F000D6B34 /* userOutline.frag */,
+				01D0E6D0164F133F000D6B34 /* userOutline.vert */,
 			);
 			name = shaders;
 			path = bin/data/shaders;

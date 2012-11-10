@@ -38,10 +38,12 @@ class ofApplication : public ofBaseApp{
     
     private:
     
+        // GL
         ofFbo           mainFbo;
-        ofShader        blurShader;
+        ofShader        trailsShader;
+        ofShader        userOutlineShader;
     
-        // state
+        // renderer state
         float   elapsedPhase;
     
         // blur parameters
@@ -56,7 +58,7 @@ class ofApplication : public ofBaseApp{
         ofxHardwareDriver           kinectDriver;
         ofxHandPhysicsManager *     handPhysics;
         int                         kinectAngle;
-    
+        
         // animation options
         bool        debugMode;
         bool        showTrails;
