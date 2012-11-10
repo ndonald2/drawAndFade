@@ -1,6 +1,6 @@
 #include "ofApplication.h"
 
-#define MAX_BLOTCH_RADIUS    0.2
+#define MAX_BLOTCH_RADIUS    0.1
 
 static int inputDeviceId = 0;
 
@@ -245,6 +245,7 @@ void ofApplication::drawHandSprites()
         ofSetColor(spriteColor);
         ofSetLineWidth(2.0f);
         ofNoFill();
+        ofLine(hp1, hp);
         ofPushMatrix();
         ofTranslate(hp);
         ofRotate(ofRandom(0, 360));
