@@ -90,19 +90,30 @@ void ofApplication::setup(){
     kinectOpenNI.setup();
     kinectOpenNI.addImageGenerator();
     kinectOpenNI.addDepthGenerator();
+
+    
+    kinectOpenNI.addHandsGenerator();
+    kinectOpenNI.addAllHandFocusGestures();
+    kinectOpenNI.setMaxNumHands(2);
+    
+    // setup user generator
+//    kinectOpenNI.addUserGenerator();
+//    kinectOpenNI.setMaxNumUsers(1);
+//    
+//    ofxOpenNIUser user;
+//    user.setUsePointCloud(false);
+//    user.setUseSkeleton(true);
+//    user.setUseMaskPixels(true);
+//    user.setUseMaskTexture(true);
+//    kinectOpenNI.setBaseUserClass(user);
+    
+    kinectOpenNI.setThreadSleep(10000);
     kinectOpenNI.setRegister(true);
     kinectOpenNI.setMirror(true);
     kinectOpenNI.setSafeThreading(true);
-    
-    // setup the hand generator
-    kinectOpenNI.addHandsGenerator();
-    kinectOpenNI.addHandFocusGesture("RaiseHand");
-    kinectOpenNI.addHandFocusGesture("MovingHand");
-    kinectOpenNI.setMaxNumHands(2);
-    
     kinectOpenNI.start();
     
-    handPhysics = new ofxHandPhysicsManager(kinectOpenNI);
+    handPhysics = new ofxHandPhysicsManager(kinectOpenNI, false);
     handPhysics->restDistance = 40.0f;
     handPhysics->smoothCoef = 0.75f;
     handPhysics->friction = 0.03f;
@@ -115,6 +126,7 @@ void ofApplication::setup(){
 void ofApplication::update(){
     
 #ifdef USE_KINECT
+    kinectOpenNI.update();
     handPhysics->update();
 #endif
     
@@ -142,7 +154,7 @@ void ofApplication::update(){
         
         
         float lowEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW);
-        float velocityBump = ofMap(lowEnergy, 0.2f, 2.0f, 1.0f, 2.0f, true);
+        float velocityBump = ofMap(lowEnergy, 0.2f, 2.0f, 1.0f, 3.0f, true);
         
         ofPoint scaledBlurVelocity = blurVelocity*velocityBump/10000.0f;
         ofPoint scaledBlurDirection = (ofPoint(0.5,0.5) + blurDirection) * scaledBlurVelocity;
@@ -204,6 +216,8 @@ void ofApplication::draw(){
         ss << "Region PSF -- Low: " << audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_LOW) <<
         " Mid: " << audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_MID) << " High: " << audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_HIGH);
         ofDrawBitmapString(ss.str(), 20, 75);
+        
+        ofDrawBitmapString("Frame Rate: " + ofToString(ofGetFrameRate()), 20, 100);
     }
 
 }

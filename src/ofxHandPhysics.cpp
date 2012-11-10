@@ -18,8 +18,11 @@ ofxHandPhysicsManager::ofxHandPhysicsState::ofxHandPhysicsState()
     isNew = true;
 }
 
-ofxHandPhysicsManager::ofxHandPhysicsManager(ofxOpenNI &openNIDevice) :
+ofxHandPhysicsManager::ofxHandPhysicsManager(ofxOpenNI &openNIDevice, bool useUserGenerator) :
     _openNIDevice(openNIDevice),
+    _usingUserGenerator(useUserGenerator),
+    _width(0.0f),
+    _height(0.0f),
     physicsEnabled(false),
     spriteMass(1.0f),
     springCoef(100.0f),
@@ -28,118 +31,71 @@ ofxHandPhysicsManager::ofxHandPhysicsManager(ofxOpenNI &openNIDevice) :
     gravity(ofPoint(0, 1000.0f)),
     smoothCoef(0.66f)
 {
-    _width = openNIDevice.getWidth();
-    _height = openNIDevice.getHeight();
+    if (useUserGenerator){
+        ofAddListener(openNIDevice.userEvent, this, &ofxHandPhysicsManager::userEvent);
+    }
+    else{
+        ofAddListener(openNIDevice.handEvent, this, &ofxHandPhysicsManager::handEvent);
+    }
+}
+
+ofxHandPhysicsManager::~ofxHandPhysicsManager()
+{
+    if (_usingUserGenerator){
+        ofRemoveListener(_openNIDevice.userEvent, this, &ofxHandPhysicsManager::userEvent);
+    }
+    else{
+        ofRemoveListener(_openNIDevice.handEvent, this, &ofxHandPhysicsManager::handEvent);
+    }
 }
 
 void ofxHandPhysicsManager::update()
 {
-    set<XnUserID> activeHandIDs;
-    set<XnUserID> deadHandIDs;
-    set<XnUserID>::iterator it;
-    
-    // get current tracked hand IDs
-
-    for (int i=0; i<_openNIDevice.getNumTrackedHands(); i++)
-    {
-        activeHandIDs.insert(_openNIDevice.getTrackedHand(i).getID());
-    }
-        
-    // get no longer tracked hand IDs
-    for (int th=0; th < _trackedHandIDs.size(); th++)
-    {
-        if (activeHandIDs.find(_trackedHandIDs[th]) == activeHandIDs.end())
-        {
-            deadHandIDs.insert(_trackedHandIDs[th]);
-        }
-    }
-    
-    // remove physics settings for invalid hand id's
-    it = deadHandIDs.begin();
-    while (it != deadHandIDs.end()){
-        _trackedHandPhysics.erase(*it++);
-    }
-    
-    // setup new tracked hand IDs
-    _trackedHandIDs.clear();
-    it = activeHandIDs.begin();
-    while (it != activeHandIDs.end())
-    {
-        _trackedHandIDs.push_back(*it++);
-    }
-    
     // update physics settings, inserting new ones as necessary
-    double currentTime = (double)ofGetSystemTime()/1000.0;
-    for (int th = 0; th < _trackedHandIDs.size(); th++)
-    {
-        XnUserID handId = _trackedHandIDs[th];
-        ofPoint & handPosition = _openNIDevice.getHand(handId).getPosition();
-        ofxHandPhysicsState & physState = _trackedHandPhysics[handId];
-        
-        if (physState.isNew){
-            physState.spritePositions.assign(MAX_POINT_HISTORY, handPosition);
-            physState.handPositions.assign(MAX_POINT_HISTORY, handPosition);
-            physState.isNew = false;
-        }
-        else{
+    if (_usingUserGenerator){
+        for (int th = 0; th < _trackedUserOrHandIDs.size(); th++)
+        {
+            XnUserID userID = _trackedUserOrHandIDs[th];
+            ofPoint & handPosition = _openNIDevice.getTrackedUser(th).getJoint(JOINT_LEFT_HAND).getProjectivePosition();
+            ofxHandPhysicsState & physState = _trackedUserHandPhysicsL[userID];
+            updatePhysState(physState, handPosition);
             
-            // update hand position
-            handPosition *= 1.0f - smoothCoef;
-            handPosition += physState.handPositions[0]*smoothCoef;
-            
-            physState.handPositions.pop_back();
-            physState.handPositions.insert(physState.handPositions.begin(), handPosition);
-            
-            double dTime = currentTime - physState.lastUpdateTime;
-            physState.handVelocity = (handPosition - physState.handPositions[0])/dTime;
-            
-            if (physicsEnabled){
-                
-                ofVec2f dStretch = physState.spritePositions[0] - physState.handPositions[0];
-                dStretch -= restDistance*dStretch.getNormalized();
-                
-                ofVec2f force = -dStretch*springCoef;
-                force += gravity*spriteMass;
-                physState.spriteAcceleration = force/spriteMass;
-                physState.spriteVelocity += physState.spriteAcceleration * dTime;
-                physState.spriteVelocity *= 1.0f - friction;
-                
-                ofVec3f newPosition = physState.spritePositions[0] + (physState.spriteVelocity*dTime);
-                physState.spritePositions.pop_back();
-                physState.spritePositions.insert(physState.spritePositions.begin(), newPosition);
-            }
-            else{
-                physState.spritePositions.pop_back();
-                physState.spritePositions.insert(physState.spritePositions.begin(),  handPosition);
-                physState.spriteVelocity = physState.handVelocity;
-            }
-
+            handPosition = _openNIDevice.getTrackedUser(th).getJoint(JOINT_RIGHT_HAND).getProjectivePosition();
+            physState = _trackedUserHandPhysicsR[userID];
+            updatePhysState(physState, handPosition);
         }
 
-        physState.lastUpdateTime = currentTime;
+    }
+    else{
+        for (int th = 0; th < _trackedUserOrHandIDs.size(); th++)
+        {
+            XnUserID handId = _trackedUserOrHandIDs[th];
+            ofPoint & handPosition = _openNIDevice.getHand(handId).getPosition();
+            ofxHandPhysicsState & physState = _trackedHandPhysics[handId];
+            updatePhysState(physState, handPosition);
+        }
     }
 }
 
 unsigned int ofxHandPhysicsManager::getNumTrackedHands()
 {
-    return _trackedHandIDs.size();
+    return _usingUserGenerator ? _trackedUserOrHandIDs.size()*2 : _trackedUserOrHandIDs.size();
 }
 
 ofxHandPhysicsManager::ofxHandPhysicsState ofxHandPhysicsManager::getPhysicsStateForHand(unsigned int i)
 {
-    if (i >= _trackedHandIDs.size())
+    if (i >= _trackedUserOrHandIDs.size())
     {
         ofLog(OF_LOG_ERROR, "ofxHandPhysicsManager::getPhysicsStateForHand - index out of bounds");
-        return ofxHandPhysicsState(); // yeah, yeah, warning...
+        return ofxHandPhysicsState();
     }
     
-    XnUserID thId = _trackedHandIDs[i];
-    return _trackedHandPhysics[thId];
+    return handPhysicsForIndex(i);
 }
 
 ofPoint ofxHandPhysicsManager::getNormalizedSpritePositionForHand(unsigned int i, unsigned int stepIndex)
 {
-    if (i >= _trackedHandIDs.size())
+    if (i >= _trackedUserOrHandIDs.size())
     {
         ofLog(OF_LOG_ERROR, "ofxHandPhysicsManager::getNormalizedPositionForHand - index out of bounds");
         return ofPoint();
@@ -151,23 +107,136 @@ ofPoint ofxHandPhysicsManager::getNormalizedSpritePositionForHand(unsigned int i
         _height = _openNIDevice.getHeight();
     }
     
+    // don't divide by zero
+    if (_width == 0.0f || _height == 0.0f)
+    {
+        return ofPoint(0,0);
+    }
+    
     stepIndex = CLAMP(stepIndex, 0, MAX_POINT_HISTORY);
     
-    XnUserID thId = _trackedHandIDs[i];
-    ofPoint returnPoint = _trackedHandPhysics[thId].spritePositions[stepIndex];
+    ofPoint returnPoint = handPhysicsForIndex(i).spritePositions[stepIndex];
     return returnPoint * ofPoint(1.0f/_width, 1.0f/_height);
 }
 
 float ofxHandPhysicsManager::getAbsSpriteVelocityForHand(unsigned int i)
 {
-    if (i >= _trackedHandIDs.size())
+    if (i >= _trackedUserOrHandIDs.size())
     {
         ofLog(OF_LOG_ERROR, "ofxHandPhysicsManager::getNormalizedPositionForHand - index out of bounds");
         return 0.0f;
     }
     
-    XnUserID thId = _trackedHandIDs[i];
-    return _trackedHandPhysics[thId].spriteVelocity.length();
+    return handPhysicsForIndex(i).spriteVelocity.length();
+}
+
+void ofxHandPhysicsManager::updatePhysState(ofxHandPhysicsManager::ofxHandPhysicsState &physState, ofPoint &handPosition)
+{
+    double currentTime = (double)ofGetSystemTime()/1000.0;
+    
+    if (physState.isNew){
+        physState.spritePositions.assign(MAX_POINT_HISTORY, handPosition);
+        physState.handPositions.assign(MAX_POINT_HISTORY, handPosition);
+        physState.isNew = false;
+    }
+    else{
+        
+        // update hand position
+        handPosition *= 1.0f - smoothCoef;
+        handPosition += physState.handPositions[0]*smoothCoef;
+        
+        physState.handPositions.pop_back();
+        physState.handPositions.insert(physState.handPositions.begin(), handPosition);
+        
+        double dTime = currentTime - physState.lastUpdateTime;
+        physState.handVelocity = (handPosition - physState.handPositions[0])/dTime;
+        
+        if (physicsEnabled){
+            
+            ofVec2f dStretch = physState.spritePositions[0] - physState.handPositions[0];
+            dStretch -= restDistance*dStretch.getNormalized();
+            
+            ofVec2f force = -dStretch*springCoef;
+            force += gravity*spriteMass;
+            physState.spriteAcceleration = force/spriteMass;
+            physState.spriteVelocity += physState.spriteAcceleration * dTime;
+            physState.spriteVelocity *= 1.0f - friction;
+            
+            ofVec3f newPosition = physState.spritePositions[0] + (physState.spriteVelocity*dTime);
+            physState.spritePositions.pop_back();
+            physState.spritePositions.insert(physState.spritePositions.begin(), newPosition);
+        }
+        else{
+            physState.spritePositions.pop_back();
+            physState.spritePositions.insert(physState.spritePositions.begin(),  handPosition);
+            physState.spriteVelocity = physState.handVelocity;
+        }
+        
+    }
+    
+    physState.lastUpdateTime = currentTime;
+
 }
 
 
+void ofxHandPhysicsManager::userEvent(ofxOpenNIUserEvent &event)
+{
+    if (event.userStatus == USER_SKELETON_FOUND){
+        _trackedUserOrHandIDs.push_back(event.id);
+    }
+    else if (event.userStatus == USER_SKELETON_LOST){
+        
+        _trackedUserHandPhysicsL.erase(event.id);
+        _trackedUserHandPhysicsR.erase(event.id);
+        
+        vector<XnUserID>::iterator it = _trackedUserOrHandIDs.begin();
+        while (it != _trackedUserOrHandIDs.end()){
+            if (*it == event.id){
+                _trackedUserOrHandIDs.erase(it);
+                break;
+            }
+            it++;
+        }
+        
+    }
+}
+
+void ofxHandPhysicsManager::handEvent(ofxOpenNIHandEvent & event)
+{
+    if (event.handStatus == HAND_TRACKING_STARTED){
+        _trackedUserOrHandIDs.push_back(event.id);
+    }
+    else if (event.handStatus == HAND_TRACKING_STOPPED){
+        
+        _trackedHandPhysics.erase(event.id);
+        
+        vector<XnUserID>::iterator it = _trackedUserOrHandIDs.begin();
+        while (it != _trackedUserOrHandIDs.end()){
+            if (*it == event.id){
+                _trackedUserOrHandIDs.erase(it);
+                break;
+            }
+            it++;
+        }
+        
+    }
+}
+
+
+ofxHandPhysicsManager::ofxHandPhysicsState & ofxHandPhysicsManager::handPhysicsForIndex(int index){
+    if (_usingUserGenerator){
+        int uIndex = index/2;
+        int hIndex = index % 2;
+        
+        if (hIndex == 0){
+            return _trackedUserHandPhysicsL[uIndex];
+        }
+        else{
+            return _trackedUserHandPhysicsR[uIndex];
+        }
+    }
+    else{
+        return _trackedHandPhysics[_trackedUserOrHandIDs[index]];
+    }
+    
+}

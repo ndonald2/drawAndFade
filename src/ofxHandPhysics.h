@@ -22,7 +22,8 @@ public:
     
     struct ofxHandPhysicsState;
     
-    ofxHandPhysicsManager(ofxOpenNI &openNIDevice);
+    ofxHandPhysicsManager(ofxOpenNI &openNIDevice, bool useUserGenerator = false);
+    ~ofxHandPhysicsManager();
     
     void update();
     
@@ -62,13 +63,24 @@ public:
     
 private:
 
+    void updatePhysState(ofxHandPhysicsState &physState, ofPoint &handPosition);
+
+    void userEvent(ofxOpenNIUserEvent & event);
+    void handEvent(ofxOpenNIHandEvent & event);
+    
+    ofxHandPhysicsState & handPhysicsForIndex(int index);
+    
     float   _width;
     float   _height;
     
     ofxOpenNI &_openNIDevice;
+    bool    _usingUserGenerator;
     
-    vector<XnUserID>                     _trackedHandIDs;
-    map<XnUserID, ofxHandPhysicsState>   _trackedHandPhysics;
+    vector<XnUserID>                            _trackedUserOrHandIDs;
+    map<XnUserID, ofxHandPhysicsState>          _trackedHandPhysics;
+    map<XnUserID, ofxHandPhysicsState>          _trackedUserHandPhysicsL;
+    map<XnUserID, ofxHandPhysicsState>          _trackedUserHandPhysicsR;
+
 
 };
 
