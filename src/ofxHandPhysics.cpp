@@ -166,7 +166,7 @@ void ofxHandPhysicsManager::userEvent(ofxOpenNIUserEvent &event)
     if (event.userStatus == USER_SKELETON_FOUND){
         _trackedUserOrHandIDs.push_back(event.id);
     }
-    else if (event.userStatus == USER_SKELETON_LOST){
+    else if (event.userStatus == USER_SKELETON_LOST || event.userStatus == USER_TRACKING_STOPPED){
         
         _trackedUserHandPhysicsL.erase(event.id);
         _trackedUserHandPhysicsR.erase(event.id);

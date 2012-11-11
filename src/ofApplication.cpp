@@ -95,18 +95,18 @@ void ofApplication::setup(){
     kinectOpenNI.addHandsGenerator();
     kinectOpenNI.addAllHandFocusGestures();
     kinectOpenNI.setMaxNumHands(2);
-    
+    kinectOpenNI.setMinTimeBetweenHands(50);
+
     kinectOpenNI.setUseDepthRawPixels(true);
     kinectOpenNI.setDepthColoring(COLORING_GREY);
     
     // setup user generator
 //    kinectOpenNI.addUserGenerator();
-//    kinectOpenNI.setMaxNumUsers(1);
-//    
+//
 //    ofxOpenNIUser user;
-//    user.setUsePointCloud(false);
-//    user.setUseSkeleton(false);
-//    user.setUseMaskPixels(true);
+//    user.setUsePointCloud(true);
+//    user.setUseSkeleton(true);
+//    user.setUseMaskPixels(false);
 //    user.setUseMaskTexture(false);
 //    kinectOpenNI.setBaseUserClass(user);
     
@@ -181,15 +181,7 @@ void ofApplication::update(){
         ofPopMatrix();
     }
 
-    drawHandSprites();
-    ofEnableBlendMode(OF_BLENDMODE_ALPHA);
-    ofTexture & depthTex = kinectOpenNI.getDepthTextureReference();
-    userOutlineShader.begin();
-    userOutlineShader.setUniformTexture("depthTex", depthTex, 1);
-    userOutlineShader.setUniform1f("threshold", depthThresh);
-    drawBillboardRect(0,0,ofGetWidth(),ofGetHeight(),depthTex.getWidth(),depthTex.getHeight());
-    userOutlineShader.end();
-    ofDisableBlendMode();
+    drawPoiSprites();
     
     if (showTrails){
         ofSetColor(255,255,255);
@@ -198,7 +190,8 @@ void ofApplication::update(){
     }
 
     mainFbo.setActiveDrawBuffer(0);
-    drawAudioBlobs();
+    drawUserOutline();
+    drawHandSprites();
     
     mainFbo.end();
 }
@@ -211,7 +204,7 @@ void ofApplication::draw(){
     ofEnableAlphaBlending();
     
     float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW);
-    float bright = ofMap(lowF, 0.01f, 2.0f, 20.0f, 160.0f, true);
+    float bright = ofMap(lowF, 0.01f, 2.0f, 60.0f, 160.0f, true);
     ofBackgroundGradient(ofColor::fromHsb(180, 80, bright), ofColor::fromHsb(0, 0, 20));
     
     mainFbo.draw(0, 0);
@@ -241,7 +234,7 @@ void ofApplication::draw(){
 
 }
 
-void ofApplication::drawHandSprites()
+void ofApplication::drawPoiSprites()
 {
     float hue = ((cosf(0.05f*elapsedPhase)+1.0f)/2.0f)*255.0f;
     spriteColor = ofColor::fromHsb(hue, 255.0f, 255.0f);
@@ -262,14 +255,8 @@ void ofApplication::drawHandSprites()
         ofPoint hp1 = hp;
 #endif
         ofSetColor(spriteColor);
-        ofSetLineWidth(2.0f);
-        ofNoFill();
-        ofLine(hp1, hp);
-        ofPushMatrix();
-        ofTranslate(hp);
-        ofRotate(ofRandom(0, 360));
-        ofEllipse(0, 0, 5.0f, ofMap(highPSF, 0.01f, 1.0f, 5.0f, 100.0f, true));
-        ofPopMatrix();
+        ofFill();
+        ofCircle(hp, ofMap(highPSF, 0.01f, 0.5f, 5.0f, 15.0f));
         
 //        ofSetLineWidth(10.0f);
 //        
@@ -284,7 +271,7 @@ void ofApplication::drawHandSprites()
     }
 }
 
-void ofApplication::drawAudioBlobs()
+void ofApplication::drawHandSprites()
 {
     ofSetColor(audioBlobColor);
     float midEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_MID);
@@ -316,6 +303,18 @@ void ofApplication::drawAudioBlobs()
             ofCircle(handPos, 4.0f);
         }
     }
+}
+    
+void ofApplication::drawUserOutline()
+{
+    ofEnableBlendMode(OF_BLENDMODE_ALPHA);
+    ofTexture & depthTex = kinectOpenNI.getDepthTextureReference();
+    userOutlineShader.begin();
+    userOutlineShader.setUniformTexture("depthTex", depthTex, 1);
+    userOutlineShader.setUniform1f("threshold", depthThresh);
+    drawBillboardRect(0,0,ofGetWidth(),ofGetHeight(),depthTex.getWidth(),depthTex.getHeight());
+    userOutlineShader.end();
+    ofDisableBlendMode();
 }
 
 void ofApplication::drawBillboardRect(int x, int y, int w, int h, int tw, int th)

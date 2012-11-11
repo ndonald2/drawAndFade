@@ -32,8 +32,9 @@ class ofApplication : public ofBaseApp{
 		void gotMessage(ofMessage msg);
     
         // drawing
+        void drawPoiSprites();
         void drawHandSprites();
-        void drawAudioBlobs();
+        void drawUserOutline();
         void drawBillboardRect(int x, int y, int w, int h, int tw, int th);
     
     private:
