@@ -34,7 +34,7 @@ class ofApplication : public ofBaseApp{
         // drawing
         void drawHandSprites();
         void drawAudioBlobs();
-        void drawBillboardRect(int x, int y, int w, int h);
+        void drawBillboardRect(int x, int y, int w, int h, int tw, int th);
     
     private:
     
@@ -58,7 +58,8 @@ class ofApplication : public ofBaseApp{
         ofxHardwareDriver           kinectDriver;
         ofxHandPhysicsManager *     handPhysics;
         int                         kinectAngle;
-        
+        float                       depthThresh;
+    
         // animation options
         bool        debugMode;
         bool        showTrails;

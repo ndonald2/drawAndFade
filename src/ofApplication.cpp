@@ -41,6 +41,7 @@ void ofApplication::setup(){
     audioBlobColor = ofColor(220,220,220);
     
     ofSetCircleResolution(50);
+    depthThresh = 0.2f;
         
 #ifdef USE_MOUSE
     mouseVelocity = 0.0f;
@@ -86,7 +87,6 @@ void ofApplication::setup(){
     
     kinectDriver.setup();
     kinectAngle = 0;
-    kinectDriver.setTiltAngle(kinectAngle);
     
     kinectOpenNI.setup();
     kinectOpenNI.addImageGenerator();
@@ -134,7 +134,7 @@ void ofApplication::update(){
 #ifdef USE_KINECT
     kinectOpenNI.update();
     handPhysics->update();
-#endif
+ #endif
     
     elapsedPhase = 2.0*M_PI*ofGetElapsedTimef();
 
@@ -154,7 +154,7 @@ void ofApplication::update(){
     if (showTrails){
         if (ofGetFrameNum() % 180 == 0)
         {
-            blurVelocity = ofPoint(1.0f,1.0f)*ofRandom(5.0f, 50.0f);
+            blurVelocity = ofPoint(1.0f,1.0f)*ofRandom(50.0f, 250.0f);
             blurDirection = ofPoint(1.0f,1.0f)*ofRandom(-0.2f, 0.2f);
         }
         
@@ -175,13 +175,21 @@ void ofApplication::update(){
         
         trailsShader.begin();
         trailsShader.setUniformTexture("texSampler", fadingTex, 1);
-        drawBillboardRect(0, 0, ofGetWidth(), ofGetHeight());
+        drawBillboardRect(0, 0, ofGetWidth(), ofGetHeight(), fadingTex.getWidth(), fadingTex.getHeight());
         trailsShader.end();
 
         ofPopMatrix();
     }
 
     drawHandSprites();
+    ofEnableBlendMode(OF_BLENDMODE_ALPHA);
+    ofTexture & depthTex = kinectOpenNI.getDepthTextureReference();
+    userOutlineShader.begin();
+    userOutlineShader.setUniformTexture("depthTex", depthTex, 1);
+    userOutlineShader.setUniform1f("threshold", depthThresh);
+    drawBillboardRect(0,0,ofGetWidth(),ofGetHeight(),depthTex.getWidth(),depthTex.getHeight());
+    userOutlineShader.end();
+    ofDisableBlendMode();
     
     if (showTrails){
         ofSetColor(255,255,255);
@@ -205,8 +213,10 @@ void ofApplication::draw(){
     float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW);
     float bright = ofMap(lowF, 0.01f, 2.0f, 20.0f, 160.0f, true);
     ofBackgroundGradient(ofColor::fromHsb(180, 80, bright), ofColor::fromHsb(0, 0, 20));
+    
     mainFbo.draw(0, 0);
 
+    
     if (debugMode){
         
         ofSetColor(255, 255, 255);
@@ -308,13 +318,13 @@ void ofApplication::drawAudioBlobs()
     }
 }
 
-void ofApplication::drawBillboardRect(int x, int y, int w, int h)
+void ofApplication::drawBillboardRect(int x, int y, int w, int h, int tw, int th)
 {
     GLfloat tex_coords[] = {
 		0,0,
-		w,0,
-		w,h,
-		0,h
+		tw,0,
+		tw,th,
+		0,th
 	};
 	GLfloat verts[] = {
 		x,y,
@@ -346,6 +356,14 @@ void ofApplication::keyPressed(int key){
         case OF_KEY_DOWN:
             kinectAngle = CLAMP(kinectAngle - 1, -30, 30);
             kinectDriver.setTiltAngle(kinectAngle);
+            break;
+            
+        case '=':
+            depthThresh = MIN(depthThresh + 0.001, 1.0);
+            break;
+            
+        case '-':
+            depthThresh = MAX(depthThresh - 0.001, 0.0);
             break;
             
         case 'd':
