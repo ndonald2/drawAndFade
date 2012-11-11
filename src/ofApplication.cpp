@@ -1,4 +1,5 @@
 #include "ofApplication.h"
+#include "ofxNDGraphicsUtils.h"
 
 #define MAX_BLOTCH_RADIUS    0.1
 
@@ -42,6 +43,9 @@ void ofApplication::setup(){
     
     ofSetCircleResolution(50);
     depthThresh = 0.2f;
+    trailColorDecay = 0.98;
+    trailAlphaDecay = 0.99;
+    trailMinAlpha = 0.03;
         
 #ifdef USE_MOUSE
     mouseVelocity = 0.0f;
@@ -50,7 +54,7 @@ void ofApplication::setup(){
     ofFbo::Settings fboSettings;
     fboSettings.width = ofGetWidth();
     fboSettings.height = ofGetHeight();
-    fboSettings.useDepth = true;
+    fboSettings.useDepth = false;
     fboSettings.useStencil = false;
     fboSettings.depthStencilAsTexture = false;
     fboSettings.numColorbuffers = 2;
@@ -58,15 +62,21 @@ void ofApplication::setup(){
         
     mainFbo.allocate(fboSettings);
     mainFbo.begin();
-    ofClear(0,0,0,0);
-    mainFbo.setActiveDrawBuffer(1);
+    mainFbo.activateAllDrawBuffers();
     ofClear(0,0,0,0);
     mainFbo.end();
     
+    trailsFbo.allocate(fboSettings);
+    trailsFbo.begin();
+    trailsFbo.activateAllDrawBuffers();
+    ofClear(0, 0, 0, 0);
+    trailsFbo.end();
+    
     trailsShader.load("shaders/trails.vert", "shaders/trails.frag");
     userOutlineShader.load("shaders/userOutline.vert", "shaders/userOutline.frag");
-    blurDirection = ofPoint(0,0);
-    blurVelocity = ofPoint(5.0f,5.0f);
+    
+    trailVelocity = ofPoint(0.0f,10.0f);
+    trailScale = ofPoint(1.001f, 1.0f);
     
     // audio setup
     ofxAudioAnalyzer::Settings audioSettings;
@@ -91,25 +101,26 @@ void ofApplication::setup(){
     kinectOpenNI.setup();
     kinectOpenNI.addImageGenerator();
     kinectOpenNI.addDepthGenerator();
+
+    kinectOpenNI.setDepthColoring(COLORING_GREY);
     
+#ifdef USE_USER_TRACKING
+    // setup user generator
+    kinectOpenNI.addUserGenerator();
+    ofxOpenNIUser user;
+    user.setUsePointCloud(true);
+    user.setUseSkeleton(true);
+    user.setUseMaskPixels(false);
+    user.setUseMaskTexture(false);
+    kinectOpenNI.setBaseUserClass(user);
+#else
+    // hands generator
     kinectOpenNI.addHandsGenerator();
     kinectOpenNI.addAllHandFocusGestures();
     kinectOpenNI.setMaxNumHands(2);
     kinectOpenNI.setMinTimeBetweenHands(50);
+#endif
 
-    kinectOpenNI.setUseDepthRawPixels(true);
-    kinectOpenNI.setDepthColoring(COLORING_GREY);
-    
-    // setup user generator
-//    kinectOpenNI.addUserGenerator();
-//
-//    ofxOpenNIUser user;
-//    user.setUsePointCloud(true);
-//    user.setUseSkeleton(true);
-//    user.setUseMaskPixels(false);
-//    user.setUseMaskTexture(false);
-//    kinectOpenNI.setBaseUserClass(user);
-    
     kinectOpenNI.setThreadSleep(30000);
     kinectOpenNI.setSafeThreading(true);
     kinectOpenNI.setRegister(true);
@@ -117,7 +128,12 @@ void ofApplication::setup(){
     
     kinectOpenNI.start();
     
-    handPhysics = new ofxHandPhysicsManager(kinectOpenNI);
+#ifdef USE_USER_TRACKING
+    handPhysics = new ofxHandPhysicsManager(kinectOpenNI, true);
+#else
+    handPhysics = new ofxHandPhysicsManager(kinectOpenNI, false);
+#endif
+    
     handPhysics->restDistance = 40.0f;
     handPhysics->smoothCoef = 0.75f;
     handPhysics->friction = 0.03f;
@@ -128,68 +144,25 @@ void ofApplication::setup(){
 
 //--------------------------------------------------------------
 void ofApplication::update(){
-    
-    double dTime = ofGetElapsedTimef() - ofGetLastFrameTime();
-    
+
+    elapsedPhase = 2.0*M_PI*ofGetElapsedTimef();
+
 #ifdef USE_KINECT
     kinectOpenNI.update();
     handPhysics->update();
  #endif
     
-    elapsedPhase = 2.0*M_PI*ofGetElapsedTimef();
-
     // draw to FBO
-    
     glDisable(GL_DEPTH_TEST);
     ofDisableAlphaBlending();
     
     mainFbo.begin();
-    ofFill();
-    mainFbo.setActiveDrawBuffer(0);
     ofClear(0,0,0,0);
-    ofSetColor(255,255,255);
-    
-    ofTexture & fadingTex = mainFbo.getTextureReference(1);
-    
-    if (showTrails){
-        if (ofGetFrameNum() % 180 == 0)
-        {
-            blurVelocity = ofPoint(1.0f,1.0f)*ofRandom(50.0f, 250.0f);
-            blurDirection = ofPoint(1.0f,1.0f)*ofRandom(-0.2f, 0.2f);
-        }
-        
-        
-//        float lowEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW);
-//        float velocityBump = ofMap(lowEnergy, 0.2f, 2.0f, 1.0f, 3.0f, true);
-        
-        ofPoint scaledBlurVelocity = blurVelocity*dTime*0.000001;
-        ofPoint scaledBlurDirection = (ofPoint(0.5,0.5) + blurDirection) * scaledBlurVelocity;
 
-        
-        ofPushMatrix();
-        ofScale(1.0f + scaledBlurVelocity.x, 1.0f + scaledBlurVelocity.y);
-        
-        // re center
-        ofPoint translation = -(ofPoint(ofGetWidth(), ofGetHeight())*scaledBlurDirection);
-        ofTranslate(translation);
-        
-        trailsShader.begin();
-        trailsShader.setUniformTexture("texSampler", fadingTex, 1);
-        drawBillboardRect(0, 0, ofGetWidth(), ofGetHeight(), fadingTex.getWidth(), fadingTex.getHeight());
-        trailsShader.end();
-
-        ofPopMatrix();
-    }
-
+    beginTrails();
     drawPoiSprites();
+    endTrails();
     
-    if (showTrails){
-        ofSetColor(255,255,255);
-        mainFbo.setActiveDrawBuffer(1);
-        mainFbo.getTextureReference(0).draw(0,0);
-    }
-
-    mainFbo.setActiveDrawBuffer(0);
     drawUserOutline();
     drawHandSprites();
     
@@ -209,7 +182,6 @@ void ofApplication::draw(){
     
     mainFbo.draw(0, 0);
 
-    
     if (debugMode){
         
         ofSetColor(255, 255, 255);
@@ -231,6 +203,52 @@ void ofApplication::draw(){
         
         ofDrawBitmapString("Frame Rate: " + ofToString(ofGetFrameRate()), 20, 100);
     }
+
+}
+
+void ofApplication::beginTrails()
+{
+    mainFbo.setActiveDrawBuffer(0);
+    ofSetColor(255,255,255);
+    ofFill();
+    
+    ofTexture & fadingTex = mainFbo.getTextureReference(1);
+    
+    if (showTrails){
+        
+        ofPoint trailOffset = trailVelocity*ofGetLastFrameTime();
+        
+        ofPushMatrix();        
+
+        ofTranslate(trailOffset);
+        ofScale(trailScale.x, trailScale.y);
+        ofTranslate(-(0.5f*ofGetWindowSize()*(trailScale - ofPoint(1.0,1.0))));
+        
+        trailsShader.begin();
+        trailsShader.setUniformTexture("texSampler", fadingTex, 1);
+        trailsShader.setUniform1f("alphaDecay", trailAlphaDecay);
+        trailsShader.setUniform1f("colorDecay", trailColorDecay);
+        trailsShader.setUniform1f("alphaMin", trailMinAlpha);
+        drawBillboardRect(0, 0, ofGetWidth(), ofGetHeight(), fadingTex.getWidth(), fadingTex.getHeight());
+        trailsShader.end();
+        
+        ofPopMatrix();
+    }
+    
+}
+
+void ofApplication::endTrails()
+{
+    if (showTrails){
+        ofSetColor(255,255,255);
+        mainFbo.setActiveDrawBuffer(1);
+        mainFbo.getTextureReference(0).draw(0,0);
+        mainFbo.setActiveDrawBuffer(0);
+    }
+}
+
+void ofApplication::drawTrails()
+{
 
 }
 
@@ -256,7 +274,7 @@ void ofApplication::drawPoiSprites()
 #endif
         ofSetColor(spriteColor);
         ofFill();
-        ofCircle(hp, ofMap(highPSF, 0.01f, 0.5f, 5.0f, 15.0f));
+        ofCircle(hp, ofMap(highPSF, 0.01f, 0.5f, 5.0f, 10.0f));
         
 //        ofSetLineWidth(10.0f);
 //        
@@ -315,29 +333,6 @@ void ofApplication::drawUserOutline()
     drawBillboardRect(0,0,ofGetWidth(),ofGetHeight(),depthTex.getWidth(),depthTex.getHeight());
     userOutlineShader.end();
     ofDisableBlendMode();
-}
-
-void ofApplication::drawBillboardRect(int x, int y, int w, int h, int tw, int th)
-{
-    GLfloat tex_coords[] = {
-		0,0,
-		tw,0,
-		tw,th,
-		0,th
-	};
-	GLfloat verts[] = {
-		x,y,
-		x+w,y,
-		x+w,y+h,
-		x,y+h
-	};
-	
-	glEnableClientState( GL_TEXTURE_COORD_ARRAY );
-	glTexCoordPointer(2, GL_FLOAT, 0, tex_coords );
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(2, GL_FLOAT, 0, verts );
-	glDrawArrays( GL_TRIANGLE_FAN, 0, 4 );
-	glDisableClientState( GL_TEXTURE_COORD_ARRAY );
 }
 
 #pragma mark - Inputs

@@ -7,7 +7,16 @@
 #include "ofxAudioAnalyzer.h"
 #include "ofxHandPhysics.h"
 
+// ================================
+//      Compile-time options
+// ================================
+
+// Comment out for no-kinect debug mode (most likely out-of-date)
 #define USE_KINECT
+
+// Uncomment to use user tracking instead of hand tracking.
+//#define USE_USER_TRACKING
+
 
 void ofApplicationSetAudioInputDeviceId(int deviceId);
 
@@ -32,15 +41,18 @@ class ofApplication : public ofBaseApp{
 		void gotMessage(ofMessage msg);
     
         // drawing
+        void beginTrails();
+        void endTrails();
+        void drawTrails();
         void drawPoiSprites();
         void drawHandSprites();
         void drawUserOutline();
-        void drawBillboardRect(int x, int y, int w, int h, int tw, int th);
     
     private:
     
         // GL
         ofFbo           mainFbo;
+        ofFbo           trailsFbo;
         ofShader        trailsShader;
         ofShader        userOutlineShader;
     
@@ -48,8 +60,8 @@ class ofApplication : public ofBaseApp{
         float   elapsedPhase;
     
         // blur parameters
-        ofPoint blurDirection;
-        ofPoint blurVelocity;
+        ofPoint trailVelocity;
+        ofPoint trailScale;
     
         // audio
         ofxAudioAnalyzer audioAnalyzer;
@@ -64,6 +76,11 @@ class ofApplication : public ofBaseApp{
         // animation options
         bool        debugMode;
         bool        showTrails;
+        float       trailColorDecay;
+        float       trailAlphaDecay;
+        float       trailMinAlpha;
+    
+        // colors
         ofColor     audioBlobColor;
         ofColor     spriteColor;
         ofColor     bgColor;

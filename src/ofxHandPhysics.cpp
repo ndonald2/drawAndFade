@@ -165,15 +165,19 @@ void ofxHandPhysicsManager::userEvent(ofxOpenNIUserEvent &event)
 {
     if (event.userStatus == USER_SKELETON_FOUND){
         _trackedUserOrHandIDs.push_back(event.id);
+        ofLog(OF_LOG_NOTICE, "HandPhysics: Added user " + ofToString(event.id));
     }
     else if (event.userStatus == USER_SKELETON_LOST || event.userStatus == USER_TRACKING_STOPPED){
         
+        ofLog(OF_LOG_NOTICE, "HandPhysics: Removing user " + ofToString(event.id));
+
         _trackedUserHandPhysicsL.erase(event.id);
         _trackedUserHandPhysicsR.erase(event.id);
         
         vector<XnUserID>::iterator it = _trackedUserOrHandIDs.begin();
         while (it != _trackedUserOrHandIDs.end()){
             if (*it == event.id){
+                ofLog(OF_LOG_NOTICE, "HandPhysics: Removing user " + ofToString(event.id) + " from tracked list");
                 _trackedUserOrHandIDs.erase(it);
                 break;
             }
