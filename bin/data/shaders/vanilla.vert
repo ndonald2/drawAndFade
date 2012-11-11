@@ -1,5 +1,5 @@
 
-// vanilla vert shader
+// vanilla vertex shader (no projection)
 
 void main() {
     gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;

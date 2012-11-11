@@ -41,6 +41,7 @@
 		01A1C66A163EF35D004FFED0 /* libXnVNite_1_5_2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C65C163EF35D004FFED0 /* libXnVNite_1_5_2.dylib */; };
 		01D12D8E164EC2650050A17F /* ofxHardwareDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 01D12D8C164EC2650050A17F /* ofxHardwareDriver.cpp */; };
 		01E09EE716503FCF0097E3D9 /* ofxNDGraphicsUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 01E09EE616503FCF0097E3D9 /* ofxNDGraphicsUtils.cpp */; };
+		01E09EEF16505D540097E3D9 /* gaussian.frag in Sources */ = {isa = PBXBuildFile; fileRef = 01E09EED16505D540097E3D9 /* gaussian.frag */; };
 		01E4BDEE163329C8003A4BCA /* ofxAudioAnalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 01E4BDEC163329C8003A4BCA /* ofxAudioAnalyzer.cpp */; };
 		01F6FD2C1631D0AA00C5A10B /* GLView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 01F6FD271631D0AA00C5A10B /* GLView.mm */; };
 		01F6FD2D1631D0AA00C5A10B /* ofxCocoaDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 01F6FD291631D0AA00C5A10B /* ofxCocoaDelegate.mm */; };
@@ -370,13 +371,13 @@
 		01A1C65B163EF35D004FFED0 /* libXnVHandGenerator_1_5_2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libXnVHandGenerator_1_5_2.dylib; sourceTree = "<group>"; };
 		01A1C65C163EF35D004FFED0 /* libXnVNite_1_5_2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libXnVNite_1_5_2.dylib; sourceTree = "<group>"; };
 		01D0E6CD164F133F000D6B34 /* trails.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = trails.frag; sourceTree = "<group>"; };
-		01D0E6CE164F133F000D6B34 /* trails.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = trails.vert; sourceTree = "<group>"; };
-		01D0E6CF164F133F000D6B34 /* userOutline.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = userOutline.frag; sourceTree = "<group>"; };
-		01D0E6D0164F133F000D6B34 /* userOutline.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = userOutline.vert; sourceTree = "<group>"; };
+		01D0E6CE164F133F000D6B34 /* vanilla.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = vanilla.vert; sourceTree = "<group>"; };
+		01D0E6CF164F133F000D6B34 /* grayscaleThresh.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = grayscaleThresh.frag; sourceTree = "<group>"; };
 		01D12D8C164EC2650050A17F /* ofxHardwareDriver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxHardwareDriver.cpp; sourceTree = "<group>"; };
 		01D12D8D164EC2650050A17F /* ofxHardwareDriver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxHardwareDriver.h; sourceTree = "<group>"; };
 		01E09EE516503FBD0097E3D9 /* ofxNDGraphicsUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ofxNDGraphicsUtils.h; sourceTree = "<group>"; };
 		01E09EE616503FCF0097E3D9 /* ofxNDGraphicsUtils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxNDGraphicsUtils.cpp; sourceTree = "<group>"; };
+		01E09EED16505D540097E3D9 /* gaussian.frag */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.glsl; path = gaussian.frag; sourceTree = "<group>"; };
 		01E4BDEC163329C8003A4BCA /* ofxAudioAnalyzer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxAudioAnalyzer.cpp; sourceTree = "<group>"; };
 		01E4BDED163329C8003A4BCA /* ofxAudioAnalyzer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxAudioAnalyzer.h; sourceTree = "<group>"; };
 		01F6FD261631D0AA00C5A10B /* GLView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GLView.h; sourceTree = "<group>"; };
@@ -738,10 +739,10 @@
 		012D5657162D021E002ED710 /* shaders */ = {
 			isa = PBXGroup;
 			children = (
+				01D0E6CE164F133F000D6B34 /* vanilla.vert */,
+				01E09EED16505D540097E3D9 /* gaussian.frag */,
+				01D0E6CF164F133F000D6B34 /* grayscaleThresh.frag */,
 				01D0E6CD164F133F000D6B34 /* trails.frag */,
-				01D0E6CE164F133F000D6B34 /* trails.vert */,
-				01D0E6CF164F133F000D6B34 /* userOutline.frag */,
-				01D0E6D0164F133F000D6B34 /* userOutline.vert */,
 			);
 			name = shaders;
 			path = bin/data/shaders;
@@ -1344,6 +1345,7 @@
 				014BFFF7163F04AE003A4B5F /* ofxHandPhysics.cpp in Sources */,
 				01D12D8E164EC2650050A17F /* ofxHardwareDriver.cpp in Sources */,
 				01E09EE716503FCF0097E3D9 /* ofxNDGraphicsUtils.cpp in Sources */,
+				01E09EEF16505D540097E3D9 /* gaussian.frag in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

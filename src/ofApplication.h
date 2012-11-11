@@ -43,6 +43,9 @@ class ofApplication : public ofBaseApp{
         // drawing
         void beginTrails();
         void endTrails();
+    
+        void blurUserOutline();
+    
         void drawTrails();
         void drawPoiSprites();
         void drawHandSprites();
@@ -50,11 +53,15 @@ class ofApplication : public ofBaseApp{
     
     private:
     
-        // GL
+        // openGL
         ofFbo           mainFbo;
         ofFbo           trailsFbo;
+        ofFbo           userFbo;
+    
+    
         ofShader        trailsShader;
-        ofShader        userOutlineShader;
+        ofShader        gaussianBlurShader;
+        ofShader        grayscaleThreshShader;
     
         // renderer state
         float   elapsedPhase;
@@ -62,6 +69,7 @@ class ofApplication : public ofBaseApp{
         // blur parameters
         ofPoint trailVelocity;
         ofPoint trailScale;
+        ofPoint trailScaleAnchor;
     
         // audio
         ofxAudioAnalyzer audioAnalyzer;

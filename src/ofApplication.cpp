@@ -43,7 +43,7 @@ void ofApplication::setup(){
     
     ofSetCircleResolution(50);
     depthThresh = 0.2f;
-    trailColorDecay = 0.98;
+    trailColorDecay = 0.99;
     trailAlphaDecay = 0.99;
     trailMinAlpha = 0.03;
         
@@ -57,7 +57,7 @@ void ofApplication::setup(){
     fboSettings.useDepth = false;
     fboSettings.useStencil = false;
     fboSettings.depthStencilAsTexture = false;
-    fboSettings.numColorbuffers = 2;
+    fboSettings.numColorbuffers = 1;
     fboSettings.internalformat = GL_RGBA;
         
     mainFbo.allocate(fboSettings);
@@ -66,17 +66,31 @@ void ofApplication::setup(){
     ofClear(0,0,0,0);
     mainFbo.end();
     
+    fboSettings.numColorbuffers = 2;
+    fboSettings.internalformat = GL_RGBA32F_ARB;
     trailsFbo.allocate(fboSettings);
     trailsFbo.begin();
     trailsFbo.activateAllDrawBuffers();
     ofClear(0, 0, 0, 0);
     trailsFbo.end();
     
-    trailsShader.load("shaders/trails.vert", "shaders/trails.frag");
-    userOutlineShader.load("shaders/userOutline.vert", "shaders/userOutline.frag");
+    fboSettings.numColorbuffers = 1;
+    fboSettings.width = 640;
+    fboSettings.height = 480;
+    fboSettings.internalformat = GL_RGBA;
+    userFbo.allocate(fboSettings);
+    userFbo.begin();
+    userFbo.activateAllDrawBuffers();
+    ofClear(0,0,0,0);
+    userFbo.end();
     
-    trailVelocity = ofPoint(0.0f,10.0f);
-    trailScale = ofPoint(1.001f, 1.0f);
+    trailsShader.load("shaders/vanilla.vert", "shaders/trails.frag");
+    grayscaleThreshShader.load("shaders/vanilla.vert", "shaders/grayscaleThresh.frag");
+    gaussianBlurShader.load("shaders/vanilla.vert", "shaders/gaussian.frag");
+    
+    trailVelocity = ofPoint(0.0f,25.0f);
+    trailScale = ofPoint(1.0f, 1.0f);
+    trailScaleAnchor = ofPoint(0.5f, 0.5f);
     
     // audio setup
     ofxAudioAnalyzer::Settings audioSettings;
@@ -150,22 +164,29 @@ void ofApplication::update(){
 #ifdef USE_KINECT
     kinectOpenNI.update();
     handPhysics->update();
+    
+    blurUserOutline();
  #endif
     
-    // draw to FBO
+    // draw to FBOs
     glDisable(GL_DEPTH_TEST);
-    ofDisableAlphaBlending();
+    ofDisableBlendMode();
+    
+    if (showTrails){
+        beginTrails();
+        drawPoiSprites();
+        endTrails();
+    }
     
     mainFbo.begin();
     ofClear(0,0,0,0);
-
-    beginTrails();
-    drawPoiSprites();
-    endTrails();
-    
+    ofSetColor(200, 40, 20, 220);
+    ofEnableBlendMode(OF_BLENDMODE_ALPHA);
     drawUserOutline();
+    if (showTrails){
+        drawTrails();
+    }
     drawHandSprites();
-    
     mainFbo.end();
 }
 
@@ -208,48 +229,83 @@ void ofApplication::draw(){
 
 void ofApplication::beginTrails()
 {
-    mainFbo.setActiveDrawBuffer(0);
+    trailsFbo.begin();
+    trailsFbo.setActiveDrawBuffer(0);
     ofSetColor(255,255,255);
     ofFill();
     
-    ofTexture & fadingTex = mainFbo.getTextureReference(1);
+    ofTexture & fadingTex = trailsFbo.getTextureReference(1);
+            
+    ofPoint trailOffset = trailVelocity*ofGetLastFrameTime();
     
-    if (showTrails){
-        
-        ofPoint trailOffset = trailVelocity*ofGetLastFrameTime();
-        
-        ofPushMatrix();        
+    ofPushMatrix();        
 
-        ofTranslate(trailOffset);
-        ofScale(trailScale.x, trailScale.y);
-        ofTranslate(-(0.5f*ofGetWindowSize()*(trailScale - ofPoint(1.0,1.0))));
-        
-        trailsShader.begin();
-        trailsShader.setUniformTexture("texSampler", fadingTex, 1);
-        trailsShader.setUniform1f("alphaDecay", trailAlphaDecay);
-        trailsShader.setUniform1f("colorDecay", trailColorDecay);
-        trailsShader.setUniform1f("alphaMin", trailMinAlpha);
-        drawBillboardRect(0, 0, ofGetWidth(), ofGetHeight(), fadingTex.getWidth(), fadingTex.getHeight());
-        trailsShader.end();
-        
-        ofPopMatrix();
-    }
+    ofTranslate(trailOffset);
+    ofScale(trailScale.x, trailScale.y);
+    ofTranslate(-(trailScaleAnchor*ofGetWindowSize()*(trailScale - ofPoint(1.0,1.0))));
     
+    trailsShader.begin();
+    trailsShader.setUniformTexture("texSampler", fadingTex, 1);
+    trailsShader.setUniform1f("alphaDecay", trailAlphaDecay);
+    trailsShader.setUniform1f("colorDecay", trailColorDecay);
+    trailsShader.setUniform1f("alphaMin", trailMinAlpha);
+    drawBillboardRect(0, 0, ofGetWidth(), ofGetHeight(), fadingTex.getWidth(), fadingTex.getHeight());
+    trailsShader.end();
+    
+    ofPopMatrix();    
 }
 
 void ofApplication::endTrails()
 {
-    if (showTrails){
-        ofSetColor(255,255,255);
-        mainFbo.setActiveDrawBuffer(1);
-        mainFbo.getTextureReference(0).draw(0,0);
-        mainFbo.setActiveDrawBuffer(0);
-    }
+    ofSetColor(255,255,255);
+    trailsFbo.setActiveDrawBuffer(1);
+    trailsFbo.getTextureReference(0).draw(0,0);
+    trailsFbo.end();
+}
+
+void ofApplication::blurUserOutline()
+{
+    ofDisableBlendMode();
+    ofTexture & depthTex = kinectOpenNI.getDepthTextureReference();
+    
+    userFbo.begin();
+    
+    // ===== threshold =====
+    grayscaleThreshShader.begin();
+    grayscaleThreshShader.setUniform1f("threshold", depthThresh);
+    grayscaleThreshShader.setUniformTexture("texture", depthTex, 1);
+    
+    drawBillboardRect(0, 0, userFbo.getWidth(), userFbo.getHeight(), depthTex.getWidth(), depthTex.getHeight());
+    
+    grayscaleThreshShader.end();
+    
+    // ===== blur =====
+    gaussianBlurShader.begin();
+    
+    float blurAmt = ((sinf(elapsedPhase*0.5)*2.0f)-1.0f)*10.0f;
+    
+    gaussianBlurShader.setUniform1f("sigma", blurAmt);
+    gaussianBlurShader.setUniform1f("nBlurPixels", 8.0f);
+    gaussianBlurShader.setUniform1i("isVertical", 0);
+    gaussianBlurShader.setUniformTexture("blurTexture",  userFbo.getTextureReference(), 1);
+    
+    drawBillboardRect(0, 0, userFbo.getWidth(), userFbo.getHeight(), depthTex.getWidth(), depthTex.getHeight());
+    
+    gaussianBlurShader.setUniform1i("isVertical", 1);
+    gaussianBlurShader.setUniformTexture("blurTexture", userFbo.getTextureReference(), 1);
+    
+    drawBillboardRect(0, 0, userFbo.getWidth(), userFbo.getHeight(), depthTex.getWidth(), depthTex.getHeight());
+    
+    gaussianBlurShader.end();
+    
+    userFbo.end();
 }
 
 void ofApplication::drawTrails()
 {
-
+    ofSetColor(255, 255, 255);
+    ofTexture & trailTex = trailsFbo.getTextureReference(0);
+    trailTex.draw(0,0,mainFbo.getWidth(),mainFbo.getHeight());
 }
 
 void ofApplication::drawPoiSprites()
@@ -325,14 +381,7 @@ void ofApplication::drawHandSprites()
     
 void ofApplication::drawUserOutline()
 {
-    ofEnableBlendMode(OF_BLENDMODE_ALPHA);
-    ofTexture & depthTex = kinectOpenNI.getDepthTextureReference();
-    userOutlineShader.begin();
-    userOutlineShader.setUniformTexture("depthTex", depthTex, 1);
-    userOutlineShader.setUniform1f("threshold", depthThresh);
-    drawBillboardRect(0,0,ofGetWidth(),ofGetHeight(),depthTex.getWidth(),depthTex.getHeight());
-    userOutlineShader.end();
-    ofDisableBlendMode();
+    userFbo.getTextureReference().draw(0,0,mainFbo.getWidth(),mainFbo.getHeight());
 }
 
 #pragma mark - Inputs
