@@ -2,6 +2,7 @@
 #include "ofxNDGraphicsUtils.h"
 
 #define MAX_BLOTCH_RADIUS    0.1
+#define TRAIL_FBO_SCALE      1.25
 
 static int inputDeviceId = 0;
 
@@ -44,7 +45,7 @@ void ofApplication::setup(){
     ofSetCircleResolution(50);
     depthThresh = 0.2f;
     trailColorDecay = 0.99;
-    trailAlphaDecay = 0.99;
+    trailAlphaDecay = 0.98;
     trailMinAlpha = 0.03;
         
 #ifdef USE_MOUSE
@@ -67,6 +68,8 @@ void ofApplication::setup(){
     mainFbo.end();
     
     fboSettings.numColorbuffers = 2;
+    fboSettings.width = ofGetWidth()*TRAIL_FBO_SCALE;
+    fboSettings.height = ofGetHeight()*TRAIL_FBO_SCALE;
     fboSettings.internalformat = GL_RGBA32F_ARB;
     trailsFbo.allocate(fboSettings);
     trailsFbo.begin();
@@ -88,8 +91,8 @@ void ofApplication::setup(){
     grayscaleThreshShader.load("shaders/vanilla.vert", "shaders/grayscaleThresh.frag");
     gaussianBlurShader.load("shaders/vanilla.vert", "shaders/gaussian.frag");
     
-    trailVelocity = ofPoint(0.0f,25.0f);
-    trailScale = ofPoint(1.0f, 1.0f);
+    trailVelocity = ofPoint(0.0f,80.0f);
+    trailScale = ofPoint(-0.1f, -0.1f);
     trailScaleAnchor = ofPoint(0.5f, 0.5f);
     
     // audio setup
@@ -149,8 +152,9 @@ void ofApplication::setup(){
 #endif
     
     handPhysics->restDistance = 40.0f;
+    handPhysics->springCoef = 120.0f;
     handPhysics->smoothCoef = 0.75f;
-    handPhysics->friction = 0.03f;
+    handPhysics->friction = 0.04f;
     handPhysics->gravity = ofVec2f(0,800.0f);
     handPhysics->physicsEnabled = true;
 #endif
@@ -178,14 +182,27 @@ void ofApplication::update(){
         endTrails();
     }
     
+    ofEnableBlendMode(OF_BLENDMODE_ALPHA);
+    
     mainFbo.begin();
     ofClear(0,0,0,0);
-    ofSetColor(200, 40, 20, 220);
-    ofEnableBlendMode(OF_BLENDMODE_ALPHA);
+    
+    ofSetColor(0,0,0,200);
+    
+    float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW);
+    float scale = ofMap(lowF, 0.5f, 2.0f, 1.0f, 1.1f);
+    
+    ofPushMatrix();
+    ofScale(scale, scale);
+    ofTranslate(-ofPoint(mainFbo.getWidth(), mainFbo.getHeight())*(scale - 1.0f)/2.0f);
     drawUserOutline();
+    ofPopMatrix();
+    
     if (showTrails){
+        ofSetColor(255, 255, 255);
         drawTrails();
     }
+
     drawHandSprites();
     mainFbo.end();
 }
@@ -198,9 +215,10 @@ void ofApplication::draw(){
     ofEnableAlphaBlending();
     
     float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW);
-    float bright = ofMap(lowF, 0.01f, 2.0f, 60.0f, 160.0f, true);
+    float bright = ofMap(lowF, 0.1f, 2.0f, 60.0f, 160.0f, true);
     ofBackgroundGradient(ofColor::fromHsb(180, 80, bright), ofColor::fromHsb(0, 0, 20));
     
+    // Draw the main FBO
     mainFbo.draw(0, 0);
 
     if (debugMode){
@@ -223,50 +241,80 @@ void ofApplication::draw(){
         ofDrawBitmapString(ss.str(), 20, 75);
         
         ofDrawBitmapString("Frame Rate: " + ofToString(ofGetFrameRate()), 20, 100);
+        
     }
 
 }
 
 void ofApplication::beginTrails()
 {
-    trailsFbo.begin();
-    trailsFbo.setActiveDrawBuffer(0);
+    ofDisableBlendMode();
     ofSetColor(255,255,255);
     ofFill();
     
+    trailsFbo.begin();
+    trailsFbo.setActiveDrawBuffer(0);
+    ofClear(0,0,0,0);
+
     ofTexture & fadingTex = trailsFbo.getTextureReference(1);
-            
+    
     ofPoint trailOffset = trailVelocity*ofGetLastFrameTime();
     
     ofPushMatrix();        
 
     ofTranslate(trailOffset);
-    ofScale(trailScale.x, trailScale.y);
-    ofTranslate(-(trailScaleAnchor*ofGetWindowSize()*(trailScale - ofPoint(1.0,1.0))));
+    
+    ofPoint scaleOffset = ofPoint(1.0f,1.0f) + (trailScale*ofGetLastFrameTime());
+    
+    ofScale(scaleOffset.x, scaleOffset.y);
+    ofTranslate(-(trailScaleAnchor*ofPoint(trailsFbo.getWidth(),trailsFbo.getHeight())*(scaleOffset - ofPoint(1.0,1.0))));
     
     trailsShader.begin();
     trailsShader.setUniformTexture("texSampler", fadingTex, 1);
     trailsShader.setUniform1f("alphaDecay", trailAlphaDecay);
     trailsShader.setUniform1f("colorDecay", trailColorDecay);
     trailsShader.setUniform1f("alphaMin", trailMinAlpha);
-    drawBillboardRect(0, 0, ofGetWidth(), ofGetHeight(), fadingTex.getWidth(), fadingTex.getHeight());
+    int w = trailsFbo.getWidth();
+    int h = trailsFbo.getHeight();
+    drawBillboardRect(0, 0, w, h, w, h);
     trailsShader.end();
     
-    ofPopMatrix();    
+    ofPopMatrix();
+    
+    // for other drawing methods to be scaled properly
+    ofPushMatrix();
+    ofPoint trailTrans = ofPoint(ofGetWidth(), ofGetHeight())*(TRAIL_FBO_SCALE - 1.0f)/2.0f;
+    ofTranslate(trailTrans);
 }
 
 void ofApplication::endTrails()
 {
+    ofPopMatrix();
+
+    ofDisableBlendMode();
     ofSetColor(255,255,255);
     trailsFbo.setActiveDrawBuffer(1);
     trailsFbo.getTextureReference(0).draw(0,0);
     trailsFbo.end();
 }
 
+void ofApplication::drawTrails()
+{
+    ofPushMatrix();
+    ofPoint trailTrans = -ofPoint(ofGetWidth(), ofGetHeight())*(TRAIL_FBO_SCALE - 1.0f)/2.0f;
+    ofTranslate(trailTrans);
+    ofTexture & trailTex = trailsFbo.getTextureReference(0);
+    trailTex.draw(0,0);
+    ofPopMatrix();
+}
+
+
 void ofApplication::blurUserOutline()
 {
     ofDisableBlendMode();
+    
     ofTexture & depthTex = kinectOpenNI.getDepthTextureReference();
+    float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW);
     
     userFbo.begin();
     
@@ -282,10 +330,10 @@ void ofApplication::blurUserOutline()
     // ===== blur =====
     gaussianBlurShader.begin();
     
-    float blurAmt = ((sinf(elapsedPhase*0.5)*2.0f)-1.0f)*10.0f;
+    float blurAmt = ofMap(lowF, 0.1f, 3.0f, 0.01f, 15.0f, true);
     
     gaussianBlurShader.setUniform1f("sigma", blurAmt);
-    gaussianBlurShader.setUniform1f("nBlurPixels", 8.0f);
+    gaussianBlurShader.setUniform1f("nBlurPixels", 15.0f);
     gaussianBlurShader.setUniform1i("isVertical", 0);
     gaussianBlurShader.setUniformTexture("blurTexture",  userFbo.getTextureReference(), 1);
     
@@ -301,24 +349,18 @@ void ofApplication::blurUserOutline()
     userFbo.end();
 }
 
-void ofApplication::drawTrails()
-{
-    ofSetColor(255, 255, 255);
-    ofTexture & trailTex = trailsFbo.getTextureReference(0);
-    trailTex.draw(0,0,mainFbo.getWidth(),mainFbo.getHeight());
-}
-
 void ofApplication::drawPoiSprites()
 {
     float hue = ((cosf(0.05f*elapsedPhase)+1.0f)/2.0f)*255.0f;
     spriteColor = ofColor::fromHsb(hue, 255.0f, 255.0f);
         
     float highPSF = audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_HIGH);
+    float spriteRadius = ofMap(highPSF, 0.1, 1.0, 4.0f, 15.0f, true);
 
 #ifdef USE_KINECT
     for (int i=0; i<handPhysics->getNumTrackedHands(); i++)
     {
-    
+
         ofPoint hp = handPhysics->getNormalizedSpritePositionForHand(i);
         ofPoint hp1 = handPhysics->getNormalizedSpritePositionForHand(i, 1);
         hp *= ofGetWindowSize();
@@ -328,20 +370,51 @@ void ofApplication::drawPoiSprites()
         ofPoint hp = (ofGetWindowSize()/2.0f) + ofPoint(cosf(elapsedPhase/2.0f), sinf(elapsedPhase/2.0f))*100.0f;
         ofPoint hp1 = hp;
 #endif
-        ofSetColor(spriteColor);
+        float spriteVel = (handPhysics->getPhysicsStateForHand(i)).spriteVelocity.length();
+        float drawAlpha = ofMap(spriteVel, 0, 500, 64, 255);
+        ofSetColor(spriteColor.r, spriteColor.g, spriteColor.b, drawAlpha);
         ofFill();
-        ofCircle(hp, ofMap(highPSF, 0.01f, 0.5f, 5.0f, 10.0f));
-        
-//        ofSetLineWidth(10.0f);
+//
+//        ofSetLineWidth(spriteRadius);
+//        ofLine(hp1, hp);
 //        
-//        if ((hp1 - hp).length() < 5.0f)
-//        {
-//            ofFill();
-//            ofCircle(hp, 5.0f);
-//        }
-//        else{
-//            ofLine(hp1, hp);
-//        }
+        // fake "waveform" drawing algorithm
+        
+        ofVec2f pDiff = hp - hp1;
+        
+        float highPSF = audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_HIGH);
+        float shapeRadius = ofMap(highPSF, 0.4f, 1.1f, 4.0f, 50.0f);
+        float pointDistance = pDiff.length();
+        int nSegments = 5;
+        
+        ofPolyline spriteShape;
+        spriteShape.addVertex(ofPoint(0,0));
+        
+        if (pointDistance > 5.0f){
+            nSegments = MAX(5, pointDistance/15);
+            for (int n=0; n<nSegments; n++){
+                spriteShape.lineTo(ofPoint(pointDistance*(n+1)/(nSegments+1), ofRandom(-shapeRadius, shapeRadius)));
+            }
+            spriteShape.lineTo(ofPoint(pointDistance, 0));
+        }
+        else{
+            for (int n=0; n<nSegments; n++){
+                float angle = ofRandom(0, M_PI*2.0);
+                spriteShape.lineTo(ofPoint(cosf(angle),sinf(angle))*shapeRadius);
+            }
+            spriteShape.close();
+        }
+        
+        float dirAngle = ofVec2f(1.0f,0.0f).angle(pDiff);
+        
+        ofSetColor(spriteColor);
+        ofSetLineWidth(3.0f);
+        ofPushMatrix();
+        ofTranslate(hp1);
+        ofRotate(dirAngle, 0, 0, 1);
+        spriteShape.draw();
+        ofPopMatrix();
+        
     }
 }
 
@@ -362,15 +435,18 @@ void ofApplication::drawHandSprites()
         ofPoint handPos = ofGetWindowSize()/2.0f;
 #endif
         if (radius > 4.0f){
-            ofSetLineWidth(2.0f);
+            ofSetLineWidth(3.0f);
             ofPolyline randomShape;
-            randomShape.addVertex(handPos);
+            randomShape.addVertex(ofPoint(0,0));
             for (int s=0; s<4; s++){
                 float angle = M_PI*2.0f*ofRandomf();
-                randomShape.addVertex(ofPoint(handPos.x + cosf(angle)*radius, handPos.y + sinf(angle)*radius));
+                randomShape.addVertex(ofPoint(cosf(angle)*radius, sinf(angle)*radius));
             }
             randomShape.close();
+            ofPushMatrix();
+            ofTranslate(handPos);
             randomShape.draw();
+            ofPopMatrix();
         }
         else{
             ofFill();

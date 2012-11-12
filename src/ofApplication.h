@@ -15,6 +15,7 @@
 #define USE_KINECT
 
 // Uncomment to use user tracking instead of hand tracking.
+// Hand tracking is much faster/more accurate, but loses positions occasionally.
 //#define USE_USER_TRACKING
 
 
@@ -68,7 +69,7 @@ class ofApplication : public ofBaseApp{
     
         // blur parameters
         ofPoint trailVelocity;
-        ofPoint trailScale;
+        ofPoint trailScale;         // percent increase/decrease per second
         ofPoint trailScaleAnchor;
     
         // audio
