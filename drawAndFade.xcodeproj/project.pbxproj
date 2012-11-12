@@ -372,7 +372,7 @@
 		01A1C65C163EF35D004FFED0 /* libXnVNite_1_5_2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libXnVNite_1_5_2.dylib; sourceTree = "<group>"; };
 		01D0E6CD164F133F000D6B34 /* trails.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = trails.frag; sourceTree = "<group>"; };
 		01D0E6CE164F133F000D6B34 /* vanilla.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = vanilla.vert; sourceTree = "<group>"; };
-		01D0E6CF164F133F000D6B34 /* grayscaleThresh.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = grayscaleThresh.frag; sourceTree = "<group>"; };
+		01D0E6CF164F133F000D6B34 /* userDepthMask.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = userDepthMask.frag; sourceTree = "<group>"; };
 		01D12D8C164EC2650050A17F /* ofxHardwareDriver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxHardwareDriver.cpp; sourceTree = "<group>"; };
 		01D12D8D164EC2650050A17F /* ofxHardwareDriver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxHardwareDriver.h; sourceTree = "<group>"; };
 		01E09EE516503FBD0097E3D9 /* ofxNDGraphicsUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ofxNDGraphicsUtils.h; sourceTree = "<group>"; };
@@ -741,7 +741,7 @@
 			children = (
 				01D0E6CE164F133F000D6B34 /* vanilla.vert */,
 				01E09EED16505D540097E3D9 /* gaussian.frag */,
-				01D0E6CF164F133F000D6B34 /* grayscaleThresh.frag */,
+				01D0E6CF164F133F000D6B34 /* userDepthMask.frag */,
 				01D0E6CD164F133F000D6B34 /* trails.frag */,
 			);
 			name = shaders;

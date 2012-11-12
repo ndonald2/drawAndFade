@@ -16,7 +16,7 @@
 
 // Uncomment to use user tracking instead of hand tracking.
 // Hand tracking is much faster/more accurate, but loses positions occasionally.
-//#define USE_USER_TRACKING
+#define USE_USER_TRACKING
 
 
 void ofApplicationSetAudioInputDeviceId(int deviceId);
@@ -62,7 +62,7 @@ class ofApplication : public ofBaseApp{
     
         ofShader        trailsShader;
         ofShader        gaussianBlurShader;
-        ofShader        grayscaleThreshShader;
+        ofShader        userMaskShader;
     
         // renderer state
         float   elapsedPhase;

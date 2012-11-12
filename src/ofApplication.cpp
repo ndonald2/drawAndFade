@@ -88,7 +88,7 @@ void ofApplication::setup(){
     userFbo.end();
     
     trailsShader.load("shaders/vanilla.vert", "shaders/trails.frag");
-    grayscaleThreshShader.load("shaders/vanilla.vert", "shaders/grayscaleThresh.frag");
+    userMaskShader.load("shaders/vanilla.vert", "shaders/userDepthMask.frag");
     gaussianBlurShader.load("shaders/vanilla.vert", "shaders/gaussian.frag");
     
     trailVelocity = ofPoint(0.0f,80.0f);
@@ -116,20 +116,18 @@ void ofApplication::setup(){
     kinectAngle = 0;
     
     kinectOpenNI.setup();
-    kinectOpenNI.addImageGenerator();
     kinectOpenNI.addDepthGenerator();
-
+    kinectOpenNI.addImageGenerator();
     kinectOpenNI.setDepthColoring(COLORING_GREY);
     
 #ifdef USE_USER_TRACKING
     // setup user generator
     kinectOpenNI.addUserGenerator();
-    ofxOpenNIUser user;
-    user.setUsePointCloud(true);
-    user.setUseSkeleton(true);
-    user.setUseMaskPixels(false);
-    user.setUseMaskTexture(false);
-    kinectOpenNI.setBaseUserClass(user);
+    kinectOpenNI.setUseMaskPixelsAllUsers(true);
+    kinectOpenNI.setUseMaskTextureAllUsers(true);
+    kinectOpenNI.setUsePointCloudsAllUsers(false);
+    kinectOpenNI.setSkeletonProfile(XN_SKEL_PROFILE_UPPER);
+    kinectOpenNI.setUserSmoothing(0.4);
 #else
     // hands generator
     kinectOpenNI.addHandsGenerator();
@@ -138,8 +136,8 @@ void ofApplication::setup(){
     kinectOpenNI.setMinTimeBetweenHands(50);
 #endif
 
-    kinectOpenNI.setThreadSleep(30000);
-    kinectOpenNI.setSafeThreading(true);
+    kinectOpenNI.setThreadSleep(10000);
+    kinectOpenNI.setSafeThreading(false);
     kinectOpenNI.setRegister(true);
     kinectOpenNI.setMirror(true);
     
@@ -187,7 +185,7 @@ void ofApplication::update(){
     mainFbo.begin();
     ofClear(0,0,0,0);
     
-    ofSetColor(0,0,0,200);
+    ofSetColor(50,50,50,200);
     
     float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW);
     float scale = ofMap(lowF, 0.5f, 2.0f, 1.0f, 1.1f);
@@ -220,6 +218,8 @@ void ofApplication::draw(){
     
     // Draw the main FBO
     mainFbo.draw(0, 0);
+    
+    //kinectOpenNI.drawSkeletons();
 
     if (debugMode){
         
@@ -311,21 +311,23 @@ void ofApplication::drawTrails()
 
 void ofApplication::blurUserOutline()
 {
+    if (kinectOpenNI.getNumTrackedUsers() == 0)
+        return;
+    
     ofDisableBlendMode();
     
     ofTexture & depthTex = kinectOpenNI.getDepthTextureReference();
+    ofTexture & maskTex = kinectOpenNI.getTrackedUser(0).getMaskTextureReference();
     float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW);
     
     userFbo.begin();
     
-    // ===== threshold =====
-    grayscaleThreshShader.begin();
-    grayscaleThreshShader.setUniform1f("threshold", depthThresh);
-    grayscaleThreshShader.setUniformTexture("texture", depthTex, 1);
-    
+    // ===== mask =====
+    userMaskShader.begin();
+    userMaskShader.setUniformTexture("depthTexture", depthTex, 1);
+    userMaskShader.setUniformTexture("maskTexture", maskTex, 2);
     drawBillboardRect(0, 0, userFbo.getWidth(), userFbo.getHeight(), depthTex.getWidth(), depthTex.getHeight());
-    
-    grayscaleThreshShader.end();
+    userMaskShader.end();
     
     // ===== blur =====
     gaussianBlurShader.begin();
