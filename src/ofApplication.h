@@ -53,7 +53,7 @@ class ofApplication : public ofBaseApp{
         void drawUserOutline();
     
     private:
-    
+        
         // openGL
         ofFbo           mainFbo;
         ofFbo           trailsFbo;
@@ -85,13 +85,17 @@ class ofApplication : public ofBaseApp{
         // animation options
         bool        debugMode;
         bool        showTrails;
+    
         float       trailColorDecay;
         float       trailAlphaDecay;
         float       trailMinAlpha;
     
+        float       poiMaxScaleFactor;
+        float       userShapeScaleFactor;
+    
         // colors
-        ofColor     audioBlobColor;
-        ofColor     spriteColor;
+        ofColor     handsColor;
+        ofColor     poiSpriteColor;
         ofColor     bgColor;
         ofColor     bgHighlightColor;
     

@@ -56,11 +56,11 @@ void ofxHandPhysicsManager::update()
         for (int th = 0; th < _trackedUserOrHandIDs.size(); th++)
         {
             XnUserID userID = _trackedUserOrHandIDs[th];
-            ofPoint & handPositionL = _openNIDevice.getTrackedUser(th).getJoint(JOINT_LEFT_HAND).getProjectivePosition();
+            ofPoint handPositionL = _openNIDevice.getTrackedUser(th).getJoint(JOINT_LEFT_HAND).getProjectivePosition();
             ofxHandPhysicsState & physStateL = _trackedUserHandPhysicsL[userID];
             updatePhysState(physStateL, handPositionL);
             
-            ofPoint & handPositionR = _openNIDevice.getTrackedUser(th).getJoint(JOINT_RIGHT_HAND).getProjectivePosition();
+            ofPoint handPositionR = _openNIDevice.getTrackedUser(th).getJoint(JOINT_RIGHT_HAND).getProjectivePosition();
             ofxHandPhysicsState & physStateR = _trackedUserHandPhysicsR[userID];
             updatePhysState(physStateR, handPositionR);
         }

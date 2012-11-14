@@ -1,7 +1,10 @@
 #include "ofApplication.h"
 #include "ofxNDGraphicsUtils.h"
 
-#define MAX_BLOTCH_RADIUS    0.1
+#define POI_MIN_SCALE_FACTOR 0.01
+
+#define HANDS_MAX_SCALE_FACTOR 0.25
+
 #define TRAIL_FBO_SCALE      1.25
 
 static int inputDeviceId = 0;
@@ -40,13 +43,15 @@ void ofApplication::setup(){
     // setup animation parameters
     debugMode = false;
     showTrails = true;
-    audioBlobColor = ofColor(220,220,220);
+    handsColor = ofColor(220,220,220);
+    poiMaxScaleFactor = 0.05f;
+    userShapeScaleFactor = 1.1f;
     
     ofSetCircleResolution(50);
     depthThresh = 0.2f;
-    trailColorDecay = 0.99;
-    trailAlphaDecay = 0.98;
-    trailMinAlpha = 0.03;
+    trailColorDecay = 0.975f;
+    trailAlphaDecay = 0.98f;
+    trailMinAlpha = 0.03f;
         
 #ifdef USE_MOUSE
     mouseVelocity = 0.0f;
@@ -116,18 +121,24 @@ void ofApplication::setup(){
     kinectAngle = 0;
     
     kinectOpenNI.setup();
-    kinectOpenNI.addDepthGenerator();
     kinectOpenNI.addImageGenerator();
+    kinectOpenNI.addDepthGenerator();
     kinectOpenNI.setDepthColoring(COLORING_GREY);
+    
+    kinectOpenNI.setThreadSleep(10000);
+    kinectOpenNI.setSafeThreading(false);
+    kinectOpenNI.setRegister(true);
+    kinectOpenNI.setMirror(true);
     
 #ifdef USE_USER_TRACKING
     // setup user generator
     kinectOpenNI.addUserGenerator();
+    kinectOpenNI.setMaxNumUsers(1);
     kinectOpenNI.setUseMaskPixelsAllUsers(true);
     kinectOpenNI.setUseMaskTextureAllUsers(true);
     kinectOpenNI.setUsePointCloudsAllUsers(false);
     kinectOpenNI.setSkeletonProfile(XN_SKEL_PROFILE_UPPER);
-    kinectOpenNI.setUserSmoothing(0.4);
+    kinectOpenNI.setUserSmoothing(0.2);
 #else
     // hands generator
     kinectOpenNI.addHandsGenerator();
@@ -136,10 +147,6 @@ void ofApplication::setup(){
     kinectOpenNI.setMinTimeBetweenHands(50);
 #endif
 
-    kinectOpenNI.setThreadSleep(10000);
-    kinectOpenNI.setSafeThreading(false);
-    kinectOpenNI.setRegister(true);
-    kinectOpenNI.setMirror(true);
     
     kinectOpenNI.start();
     
@@ -165,8 +172,7 @@ void ofApplication::update(){
 
 #ifdef USE_KINECT
     kinectOpenNI.update();
-    handPhysics->update();
-    
+    handPhysics->update();    
     blurUserOutline();
  #endif
     
@@ -188,7 +194,7 @@ void ofApplication::update(){
     ofSetColor(50,50,50,200);
     
     float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW);
-    float scale = ofMap(lowF, 0.5f, 2.0f, 1.0f, 1.1f);
+    float scale = debugMode ? 1.0 : ofMap(lowF, 0.5f, 2.0f, 1.0f, userShapeScaleFactor);
     
     ofPushMatrix();
     ofScale(scale, scale);
@@ -201,7 +207,7 @@ void ofApplication::update(){
         drawTrails();
     }
 
-    drawHandSprites();
+    //drawHandSprites();
     mainFbo.end();
 }
 
@@ -218,10 +224,10 @@ void ofApplication::draw(){
     
     // Draw the main FBO
     mainFbo.draw(0, 0);
-    
-    //kinectOpenNI.drawSkeletons();
 
     if (debugMode){
+        
+        kinectOpenNI.drawSkeletons(0, 0, ofGetWidth(), ofGetHeight());
         
         ofSetColor(255, 255, 255);
         stringstream ss;
@@ -314,6 +320,9 @@ void ofApplication::blurUserOutline()
     if (kinectOpenNI.getNumTrackedUsers() == 0)
         return;
     
+    if (kinectOpenNI.getTrackedUser(0).isCalibrating())
+        return;
+    
     ofDisableBlendMode();
     
     ofTexture & depthTex = kinectOpenNI.getDepthTextureReference();
@@ -354,11 +363,11 @@ void ofApplication::blurUserOutline()
 void ofApplication::drawPoiSprites()
 {
     float hue = ((cosf(0.05f*elapsedPhase)+1.0f)/2.0f)*255.0f;
-    spriteColor = ofColor::fromHsb(hue, 255.0f, 255.0f);
-        
-    float highPSF = audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_HIGH);
-    float spriteRadius = ofMap(highPSF, 0.1, 1.0, 4.0f, 15.0f, true);
-
+    poiSpriteColor = ofColor::fromHsb(hue, 255.0f, 255.0f);
+    
+    float highFreq = audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_HIGH);
+    float shapeRadius = ofMap(highFreq, 0.4f, 1.4f, POI_MIN_SCALE_FACTOR*ofGetWidth(), poiMaxScaleFactor*ofGetWidth(), true);
+    
 #ifdef USE_KINECT
     for (int i=0; i<handPhysics->getNumTrackedHands(); i++)
     {
@@ -374,18 +383,13 @@ void ofApplication::drawPoiSprites()
 #endif
         float spriteVel = (handPhysics->getPhysicsStateForHand(i)).spriteVelocity.length();
         float drawAlpha = ofMap(spriteVel, 0, 500, 64, 255);
-        ofSetColor(spriteColor.r, spriteColor.g, spriteColor.b, drawAlpha);
+        ofSetColor(poiSpriteColor.r, poiSpriteColor.g, poiSpriteColor.b, drawAlpha);
         ofFill();
-//
-//        ofSetLineWidth(spriteRadius);
-//        ofLine(hp1, hp);
-//        
+        
         // fake "waveform" drawing algorithm
         
         ofVec2f pDiff = hp - hp1;
-        
-        float highPSF = audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_HIGH);
-        float shapeRadius = ofMap(highPSF, 0.4f, 1.1f, 4.0f, 50.0f);
+
         float pointDistance = pDiff.length();
         int nSegments = 5;
         
@@ -409,8 +413,8 @@ void ofApplication::drawPoiSprites()
         
         float dirAngle = ofVec2f(1.0f,0.0f).angle(pDiff);
         
-        ofSetColor(spriteColor);
-        ofSetLineWidth(3.0f);
+        ofSetColor(poiSpriteColor);
+        ofSetLineWidth(4.0f);
         ofPushMatrix();
         ofTranslate(hp1);
         ofRotate(dirAngle, 0, 0, 1);
@@ -422,9 +426,9 @@ void ofApplication::drawPoiSprites()
 
 void ofApplication::drawHandSprites()
 {
-    ofSetColor(audioBlobColor);
+    ofSetColor(handsColor);
     float midEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_MID);
-    float radius = ofMap(midEnergy, 0.1f, 5.0f, 4.0f, MAX_BLOTCH_RADIUS*ofGetWidth(), false);
+    float radius = ofMap(midEnergy, 0.1f, 5.0f, 4.0f, HANDS_MAX_SCALE_FACTOR*ofGetWidth(), false);
     
 #ifdef USE_KINECT
     for (int i=0; i<handPhysics->getNumTrackedHands(); i++)
@@ -547,3 +551,4 @@ void ofApplication::gotMessage(ofMessage msg){
 void ofApplication::dragEvent(ofDragInfo dragInfo){ 
 
 }
+
