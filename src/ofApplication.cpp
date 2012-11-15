@@ -158,7 +158,7 @@ void ofApplication::setup(){
     
     handPhysics->restDistance = 40.0f;
     handPhysics->springCoef = 120.0f;
-    handPhysics->smoothCoef = 0.75f;
+    handPhysics->smoothCoef = 0.5f;
     handPhysics->friction = 0.04f;
     handPhysics->gravity = ofVec2f(0,800.0f);
     handPhysics->physicsEnabled = true;
