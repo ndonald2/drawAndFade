@@ -15,6 +15,13 @@ void ofApplicationSetAudioInputDeviceId(int deviceId){
 
 //--------------------------------------------------------------
 
+float midiToOnePoleTc(float midiValue, float minMs, float maxMs)
+{
+    float midiNorm = ofMap(midiValue, 0, 127, 0.0f, 1.0f);
+    float maxPow = log10f(maxMs/minMs);
+    return 1.0f - (1.0f/(ofGetFrameRate()*minMs*powf(10.0f,midiNorm*maxPow)*0.001f));
+}   
+
 ofApplication::ofApplication()
 {
     handPhysics = NULL;
@@ -44,15 +51,19 @@ void ofApplication::setup(){
     debugMode = false;
     showTrails = true;
     handsColor = ofColor(220,220,220);
-    poiMaxScaleFactor = 0.05f;
+    poiMaxScaleFactor = 0.1f;
     userShapeScaleFactor = 1.1f;
     
     ofSetCircleResolution(50);
-    depthThresh = 0.2f;
+    
     trailColorDecay = 0.975f;
     trailAlphaDecay = 0.98f;
     trailMinAlpha = 0.03f;
-        
+    
+    trailVelocity = ofPoint(0.0f,80.0f);
+    trailScale = ofPoint(-0.1f, -0.1f);
+    trailScaleAnchor = ofPoint(0.5f, 0.5f);
+    
 #ifdef USE_MOUSE
     mouseVelocity = 0.0f;
 #endif
@@ -96,11 +107,13 @@ void ofApplication::setup(){
     userMaskShader.load("shaders/vanilla.vert", "shaders/userDepthMask.frag");
     gaussianBlurShader.load("shaders/vanilla.vert", "shaders/gaussian.frag");
     
-    trailVelocity = ofPoint(0.0f,80.0f);
-    trailScale = ofPoint(-0.1f, -0.1f);
-    trailScaleAnchor = ofPoint(0.5f, 0.5f);
+    // midi setup
+    midiIn.openPort(3);
+    midiIn.addListener(this);
     
     // audio setup
+    audioSensitivity = 1.0f;
+    
     ofxAudioAnalyzer::Settings audioSettings;
     audioSettings.stereo = true;
     audioSettings.inputDeviceId = inputDeviceId;
@@ -156,11 +169,11 @@ void ofApplication::setup(){
     handPhysics = new ofxHandPhysicsManager(kinectOpenNI, false);
 #endif
     
-    handPhysics->restDistance = 40.0f;
-    handPhysics->springCoef = 120.0f;
+    handPhysics->restDistance = 0.0f;
+    handPhysics->springCoef = 100.0f;
     handPhysics->smoothCoef = 0.5f;
-    handPhysics->friction = 0.04f;
-    handPhysics->gravity = ofVec2f(0,800.0f);
+    handPhysics->friction = 0.08f;
+    handPhysics->gravity = ofVec2f(0,7000.0f);
     handPhysics->physicsEnabled = true;
 #endif
 }
@@ -193,7 +206,7 @@ void ofApplication::update(){
     
     ofSetColor(50,50,50,200);
     
-    float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW);
+    float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity;
     float scale = debugMode ? 1.0 : ofMap(lowF, 0.5f, 2.0f, 1.0f, userShapeScaleFactor);
     
     ofPushMatrix();
@@ -218,7 +231,7 @@ void ofApplication::draw(){
     ofSetColor(255, 255, 255);
     ofEnableAlphaBlending();
     
-    float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW);
+    float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity;
     float bright = ofMap(lowF, 0.1f, 2.0f, 60.0f, 160.0f, true);
     ofBackgroundGradient(ofColor::fromHsb(180, 80, bright), ofColor::fromHsb(0, 0, 20));
     
@@ -365,8 +378,8 @@ void ofApplication::drawPoiSprites()
     float hue = ((cosf(0.05f*elapsedPhase)+1.0f)/2.0f)*255.0f;
     poiSpriteColor = ofColor::fromHsb(hue, 255.0f, 255.0f);
     
-    float highFreq = audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_HIGH);
-    float shapeRadius = ofMap(highFreq, 0.4f, 1.4f, POI_MIN_SCALE_FACTOR*ofGetWidth(), poiMaxScaleFactor*ofGetWidth(), true);
+    float highPSF = audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_HIGH)*audioSensitivity;
+    float shapeRadius = ofMap(highPSF, 0.3f, 4.0f, POI_MIN_SCALE_FACTOR*ofGetWidth(), poiMaxScaleFactor*ofGetWidth(), true);
     
 #ifdef USE_KINECT
     for (int i=0; i<handPhysics->getNumTrackedHands(); i++)
@@ -376,18 +389,23 @@ void ofApplication::drawPoiSprites()
         ofPoint hp1 = handPhysics->getNormalizedSpritePositionForHand(i, 1);
         hp *= ofGetWindowSize();
         hp1 *= ofGetWindowSize();
+        
+        ofxHandPhysicsManager::ofxHandPhysicsState physState = handPhysics->getPhysicsStateForHand(i);
+        float spriteVel = physState.spriteVelocity.length();
+        //float drawAlpha = ofMap(spriteVel, 0, 500, 180, 255);
+        //ofSetColor(poiSpriteColor.r, poiSpriteColor.g, poiSpriteColor.b, drawAlpha);
+
 #else
     {
         ofPoint hp = (ofGetWindowSize()/2.0f) + ofPoint(cosf(elapsedPhase/2.0f), sinf(elapsedPhase/2.0f))*100.0f;
         ofPoint hp1 = hp;
 #endif
-        float spriteVel = (handPhysics->getPhysicsStateForHand(i)).spriteVelocity.length();
-        float drawAlpha = ofMap(spriteVel, 0, 500, 64, 255);
-        ofSetColor(poiSpriteColor.r, poiSpriteColor.g, poiSpriteColor.b, drawAlpha);
+        
+        ofSetColor(poiSpriteColor);
         ofFill();
         
-        // fake "waveform" drawing algorithm
         
+        // --------- fake "waveform" drawing algorithm -------------
         ofVec2f pDiff = hp - hp1;
 
         float pointDistance = pDiff.length();
@@ -413,7 +431,6 @@ void ofApplication::drawPoiSprites()
         
         float dirAngle = ofVec2f(1.0f,0.0f).angle(pDiff);
         
-        ofSetColor(poiSpriteColor);
         ofSetLineWidth(4.0f);
         ofPushMatrix();
         ofTranslate(hp1);
@@ -427,7 +444,7 @@ void ofApplication::drawPoiSprites()
 void ofApplication::drawHandSprites()
 {
     ofSetColor(handsColor);
-    float midEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_MID);
+    float midEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_MID)*audioSensitivity;
     float radius = ofMap(midEnergy, 0.1f, 5.0f, 4.0f, HANDS_MAX_SCALE_FACTOR*ofGetWidth(), false);
     
 #ifdef USE_KINECT
@@ -484,15 +501,16 @@ void ofApplication::keyPressed(int key){
             break;
             
         case '=':
-            depthThresh = MIN(depthThresh + 0.001, 1.0);
+            audioSensitivity = CLAMP(audioSensitivity*1.1f, 0.5f, 4.0f);
             break;
             
         case '-':
-            depthThresh = MAX(depthThresh - 0.001, 0.0);
+            audioSensitivity = CLAMP(audioSensitivity*0.9f, 0.5f, 4.0f);
             break;
             
         case 'd':
             debugMode = !debugMode;
+            midiIn.setVerbose(debugMode);
             break;
             
         case 't':
@@ -552,3 +570,54 @@ void ofApplication::dragEvent(ofDragInfo dragInfo){
 
 }
 
+void ofApplication::newMidiMessage(ofxMidiMessage& msg)
+{
+    // filter by control number (any channel)
+    switch (msg.control) {
+        case 1:
+            break;
+            
+            
+        // Trail parameters
+        case 30:
+            trailVelocity.x = ofMap((float)msg.value, 0, 127, -300.0f, 300.0f);
+            break;
+            
+        case 31:
+            trailVelocity.y = ofMap((float)msg.value, 0, 127, -300.0f, 300.0f);
+            break;
+            
+        case 32:
+            trailScaleAnchor.x = ofMap((float)msg.value, 0, 127, 0.0f, 1.0f);
+            break;
+            
+        case 33:
+            trailScaleAnchor.y = ofMap((float)msg.value, 0, 127, 0.0f, 1.0f);
+            break;
+            
+        case 34:
+            trailScale = ofPoint(1,1)*ofMap((float)msg.value, 0, 127, -0.5f, 0.5f);
+            break;
+            
+        case 40:
+            trailAlphaDecay = midiToOnePoleTc((float)msg.value, 10, 10000);
+            break;
+            
+        case 41:
+            trailColorDecay = midiToOnePoleTc((float)msg.value, 10, 10000);
+            break;
+            
+        case 42:
+            trailMinAlpha = ofMap((float)msg.value, 0, 127, 0.02f, 0.15f);
+            break;
+            
+            
+        // Audio tuning
+        case 120:
+            audioSensitivity = ofMap((float)msg.value, 0, 127, 0.5f, 4.0f, true);
+            break;
+            
+        default:
+            break;
+    }
+}

@@ -68,6 +68,7 @@
     
     NSArray *resStrings = [[dedupedRes allObjects] sortedArrayUsingSelector:@selector(resolutionCompare:)];
     
+    [self.resBox addItemWithTitle:@"320 x 240"];
     [self.resBox addItemsWithTitles:resStrings];
     
     NSString *lastResolution = [[NSUserDefaults standardUserDefaults] objectForKey:kPreviousResKey];

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ofMain.h"
+#include "ofxMidi.h"
 #include "ofxOpenNI.h"
 #include "ofxHardwareDriver.h"
 #include "ofxOpenCv.h"
@@ -12,7 +13,7 @@
 // ================================
 
 // Comment out for no-kinect debug mode (most likely out-of-date)
-#define USE_KINECT
+//#define USE_KINECT
 
 // Uncomment to use user tracking instead of hand tracking.
 // Hand tracking is much faster/more accurate, but loses positions occasionally.
@@ -21,7 +22,7 @@
 
 void ofApplicationSetAudioInputDeviceId(int deviceId);
 
-class ofApplication : public ofBaseApp{
+class ofApplication : public ofBaseApp, public ofxMidiListener {
 	public:
     
         ofApplication();
@@ -31,6 +32,7 @@ class ofApplication : public ofBaseApp{
 		void update();
 		void draw();
 		
+        // default events
 		void keyPressed(int key);
 		void keyReleased(int key);
 		void mouseMoved(int x, int y);
@@ -40,6 +42,9 @@ class ofApplication : public ofBaseApp{
 		void windowResized(int w, int h);
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
+    
+        // midi events
+        void newMidiMessage(ofxMidiMessage& msg);
     
         // drawing
         void beginTrails();
@@ -59,33 +64,35 @@ class ofApplication : public ofBaseApp{
         ofFbo           trailsFbo;
         ofFbo           userFbo;
     
-    
         ofShader        trailsShader;
         ofShader        gaussianBlurShader;
         ofShader        userMaskShader;
+
     
-        // renderer state
-        float   elapsedPhase;
+        // midi
+        ofxMidiIn       midiIn;
     
-        // blur parameters
-        ofPoint trailVelocity;
-        ofPoint trailScale;         // percent increase/decrease per second
-        ofPoint trailScaleAnchor;
     
         // audio
-        ofxAudioAnalyzer audioAnalyzer;
+        ofxAudioAnalyzer            audioAnalyzer;
+        float                       audioSensitivity;
     
         // kinect
         ofxOpenNI                   kinectOpenNI;
         ofxHardwareDriver           kinectDriver;
         ofxHandPhysicsManager *     handPhysics;
         int                         kinectAngle;
-        float                       depthThresh;
+    
+        // renderer state
+        float   elapsedPhase;
     
         // animation options
         bool        debugMode;
         bool        showTrails;
     
+        ofPoint     trailVelocity;
+        ofPoint     trailScale;         // percent increase/decrease per second
+        ofPoint     trailScaleAnchor;
         float       trailColorDecay;
         float       trailAlphaDecay;
         float       trailMinAlpha;
