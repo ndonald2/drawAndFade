@@ -49,13 +49,22 @@ void ofApplication::setup(){
     
     // setup animation parameters
     debugMode = false;
-    showTrails = true;
-    handsColor = ofColor(220,220,220);
-    poiMaxScaleFactor = 0.1f;
-    userShapeScaleFactor = 1.1f;
     
-    ofSetCircleResolution(50);
-    
+    // FLAGS
+    bDrawUserOutline = true;
+    bTrailUserOutline = true;
+    bDrawHands = false;
+    bTrailHands = false;
+    bDrawPoi = false;
+    bTrailPoi = false;
+
+    // CIRCULAR GRADIENT + BACKGROUND
+    bgColor = ofColor(0,0,0);
+    gradCircleColor = ofColor(255,255,255,0);
+    gradCircleCenter = ofGetWindowSize()/2.0f;
+    gradCircleRadius = 1.0f;
+
+    // TRAILS
     trailColorDecay = 0.975f;
     trailAlphaDecay = 0.98f;
     trailMinAlpha = 0.03f;
@@ -63,6 +72,16 @@ void ofApplication::setup(){
     trailVelocity = ofPoint(0.0f,80.0f);
     trailScale = ofPoint(-0.1f, -0.1f);
     trailScaleAnchor = ofPoint(0.5f, 0.5f);
+
+    // USER OUTLINE
+    userOutlineColor = ofColor(128,128,128,200);
+    userShapeScaleFactor = 1.1f;
+
+    // POI
+    poiMaxScaleFactor = 0.1f;
+
+    // HANDS    
+    handsColor = ofColor(220,220,220);
     
 #ifdef USE_MOUSE
     mouseVelocity = 0.0f;
@@ -138,7 +157,7 @@ void ofApplication::setup(){
     kinectOpenNI.addDepthGenerator();
     kinectOpenNI.setDepthColoring(COLORING_GREY);
     
-    kinectOpenNI.setThreadSleep(10000);
+    kinectOpenNI.setThreadSleep(15000);
     kinectOpenNI.setSafeThreading(false);
     kinectOpenNI.setRegister(true);
     kinectOpenNI.setMirror(true);
@@ -146,12 +165,12 @@ void ofApplication::setup(){
 #ifdef USE_USER_TRACKING
     // setup user generator
     kinectOpenNI.addUserGenerator();
-    kinectOpenNI.setMaxNumUsers(1);
+    kinectOpenNI.setMaxNumUsers(2);
     kinectOpenNI.setUseMaskPixelsAllUsers(true);
     kinectOpenNI.setUseMaskTextureAllUsers(true);
     kinectOpenNI.setUsePointCloudsAllUsers(false);
     kinectOpenNI.setSkeletonProfile(XN_SKEL_PROFILE_UPPER);
-    kinectOpenNI.setUserSmoothing(0.2);
+    kinectOpenNI.setUserSmoothing(0.4);
 #else
     // hands generator
     kinectOpenNI.addHandsGenerator();
@@ -186,41 +205,30 @@ void ofApplication::update(){
 #ifdef USE_KINECT
     kinectOpenNI.update();
     handPhysics->update();    
-    blurUserOutline();
+    if(bDrawUserOutline) updateUserOutline();
  #endif
     
     // draw to FBOs
     glDisable(GL_DEPTH_TEST);
     ofDisableBlendMode();
     
-    if (showTrails){
-        beginTrails();
-        drawPoiSprites();
-        endTrails();
-    }
+    beginTrails();
+    if (bDrawUserOutline && bTrailUserOutline) drawUserOutline();
+    if (bDrawHands && bTrailHands) drawHandSprites();
+    if (bDrawPoi && bTrailPoi) drawPoiSprites();
+    endTrails();
     
     ofEnableBlendMode(OF_BLENDMODE_ALPHA);
-    
     mainFbo.begin();
     ofClear(0,0,0,0);
     
-    ofSetColor(50,50,50,200);
+    if (bDrawUserOutline && !bTrailUserOutline) drawUserOutline();
     
-    float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity;
-    float scale = debugMode ? 1.0 : ofMap(lowF, 0.5f, 2.0f, 1.0f, userShapeScaleFactor);
+    drawTrails();
     
-    ofPushMatrix();
-    ofScale(scale, scale);
-    ofTranslate(-ofPoint(mainFbo.getWidth(), mainFbo.getHeight())*(scale - 1.0f)/2.0f);
-    drawUserOutline();
-    ofPopMatrix();
-    
-    if (showTrails){
-        ofSetColor(255, 255, 255);
-        drawTrails();
-    }
+    if (bDrawHands && !bTrailHands) drawHandSprites();
+    if (bDrawPoi && !bTrailPoi) drawPoiSprites();
 
-    //drawHandSprites();
     mainFbo.end();
 }
 
@@ -231,11 +239,20 @@ void ofApplication::draw(){
     ofSetColor(255, 255, 255);
     ofEnableAlphaBlending();
     
-    float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity;
-    float bright = ofMap(lowF, 0.1f, 2.0f, 60.0f, 160.0f, true);
-    ofBackgroundGradient(ofColor::fromHsb(180, 80, bright), ofColor::fromHsb(0, 0, 20));
+    ofBackground(bgColor);
     
-    // Draw the main FBO
+    float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity;
+    float bright = ofMap(lowF, 0.1f, 2.0f, 0.0f, 1.0f, true);
+    
+    ofColor scaledGradCircleColor = gradCircleColor;
+    scaledGradCircleColor.a *= bright;
+    ofPushMatrix();
+    ofTranslate(gradCircleCenter);
+    ofScale(gradCircleRadius, gradCircleRadius);
+    ofxCircularGradient(scaledGradCircleColor, ofColor(0,0,0,0));
+    ofPopMatrix();
+    
+    // Draw the main FBO (TODO: inversion effects maybe?)
     mainFbo.draw(0, 0);
 
     if (debugMode){
@@ -295,7 +312,7 @@ void ofApplication::beginTrails()
     trailsShader.setUniform1f("alphaMin", trailMinAlpha);
     int w = trailsFbo.getWidth();
     int h = trailsFbo.getHeight();
-    drawBillboardRect(0, 0, w, h, w, h);
+    ofxBillboardRect(0, 0, w, h, w, h);
     trailsShader.end();
     
     ofPopMatrix();
@@ -319,6 +336,7 @@ void ofApplication::endTrails()
 
 void ofApplication::drawTrails()
 {
+    ofSetColor(255, 255, 255);
     ofPushMatrix();
     ofPoint trailTrans = -ofPoint(ofGetWidth(), ofGetHeight())*(TRAIL_FBO_SCALE - 1.0f)/2.0f;
     ofTranslate(trailTrans);
@@ -328,7 +346,7 @@ void ofApplication::drawTrails()
 }
 
 
-void ofApplication::blurUserOutline()
+void ofApplication::updateUserOutline()
 {
     if (kinectOpenNI.getNumTrackedUsers() == 0)
         return;
@@ -348,25 +366,25 @@ void ofApplication::blurUserOutline()
     userMaskShader.begin();
     userMaskShader.setUniformTexture("depthTexture", depthTex, 1);
     userMaskShader.setUniformTexture("maskTexture", maskTex, 2);
-    drawBillboardRect(0, 0, userFbo.getWidth(), userFbo.getHeight(), depthTex.getWidth(), depthTex.getHeight());
+    ofxBillboardRect(0, 0, userFbo.getWidth(), userFbo.getHeight(), depthTex.getWidth(), depthTex.getHeight());
     userMaskShader.end();
     
     // ===== blur =====
     gaussianBlurShader.begin();
     
-    float blurAmt = ofMap(lowF, 0.1f, 3.0f, 0.01f, 15.0f, true);
+    float blurAmt = ofMap(lowF, 0.1f, 3.0f, 0.01f, 15.0f, true)*audioSensitivity;
     
     gaussianBlurShader.setUniform1f("sigma", blurAmt);
     gaussianBlurShader.setUniform1f("nBlurPixels", 15.0f);
     gaussianBlurShader.setUniform1i("isVertical", 0);
     gaussianBlurShader.setUniformTexture("blurTexture",  userFbo.getTextureReference(), 1);
     
-    drawBillboardRect(0, 0, userFbo.getWidth(), userFbo.getHeight(), depthTex.getWidth(), depthTex.getHeight());
+    ofxBillboardRect(0, 0, userFbo.getWidth(), userFbo.getHeight(), depthTex.getWidth(), depthTex.getHeight());
     
     gaussianBlurShader.setUniform1i("isVertical", 1);
     gaussianBlurShader.setUniformTexture("blurTexture", userFbo.getTextureReference(), 1);
     
-    drawBillboardRect(0, 0, userFbo.getWidth(), userFbo.getHeight(), depthTex.getWidth(), depthTex.getHeight());
+    ofxBillboardRect(0, 0, userFbo.getWidth(), userFbo.getHeight(), depthTex.getWidth(), depthTex.getHeight());
     
     gaussianBlurShader.end();
     
@@ -480,7 +498,14 @@ void ofApplication::drawHandSprites()
     
 void ofApplication::drawUserOutline()
 {
+    float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity;
+    float scale = debugMode ? 1.0 : ofMap(lowF, 0.5f, 2.0f, 1.0f, userShapeScaleFactor);
+    ofSetColor(userOutlineColor);
+    ofPushMatrix();
+    ofScale(scale, scale);
+    ofTranslate(-ofPoint(mainFbo.getWidth(), mainFbo.getHeight())*(scale - 1.0f)/2.0f);
     userFbo.getTextureReference().draw(0,0,mainFbo.getWidth(),mainFbo.getHeight());
+    ofPopMatrix();
 }
 
 #pragma mark - Inputs
@@ -511,10 +536,6 @@ void ofApplication::keyPressed(int key){
         case 'd':
             debugMode = !debugMode;
             midiIn.setVerbose(debugMode);
-            break;
-            
-        case 't':
-            showTrails = !showTrails;
             break;
                         
         default:
@@ -574,11 +595,75 @@ void ofApplication::newMidiMessage(ofxMidiMessage& msg)
 {
     // filter by control number (any channel)
     switch (msg.control) {
+            
+        // ----- FLAGS -----
         case 1:
+            bDrawUserOutline = msg.value >= 64;
+            break;
+            
+        case 2:
+            bTrailUserOutline = msg.value >= 64;
+            break;
+            
+        case 3:
+            bDrawHands = msg.value >= 64;
+            break;
+            
+        case 4:
+            bTrailHands = msg.value >= 64;
+            break;
+            
+        case 5:
+            bDrawPoi = msg.value >= 64;
+            break;
+            
+        case 6:
+            bTrailPoi = msg.value >= 64;
             break;
             
             
-        // Trail parameters
+        // ----- BG + GRADIENT -----
+        case 10:
+            bgColor.setHue(ofMap((float)msg.value, 0, 127, 0, 255));
+            break;
+            
+        case 11:
+            bgColor.setSaturation(ofMap((float)msg.value, 0, 127, 0, 255));
+            break;
+            
+        case 12:
+            bgColor.setBrightness(ofMap((float)msg.value, 0, 127, 0, 255));
+            break;
+            
+        case 13:
+            gradCircleColor.setHue(ofMap((float)msg.value, 0, 127, 0, 255));
+            break;
+            
+        case 14:
+            gradCircleColor.setSaturation(ofMap((float)msg.value, 0, 127, 0, 255));
+            break;
+            
+        case 15:
+            gradCircleColor.setBrightness(ofMap((float)msg.value, 0, 127, 0, 255));
+            break;
+            
+        case 16:
+            gradCircleColor.a = ofMap((float)msg.value, 0, 127, 0, 255);
+            break;
+            
+        case 17:
+            gradCircleCenter.x = ofMap((float)msg.value, 0, 127, 0, ofGetWidth());
+            break;
+            
+        case 18:
+            gradCircleCenter.y = ofMap((float)msg.value, 0, 127, 0, ofGetHeight());
+            break;
+            
+        case 19:
+            gradCircleRadius = ofMap((float)msg.value, 0, 127, 1, ofGetWidth() * 2);
+            break;
+            
+        // ----- TRAILS -----
         case 30:
             trailVelocity.x = ofMap((float)msg.value, 0, 127, -300.0f, 300.0f);
             break;
@@ -599,15 +684,15 @@ void ofApplication::newMidiMessage(ofxMidiMessage& msg)
             trailScale = ofPoint(1,1)*ofMap((float)msg.value, 0, 127, -0.5f, 0.5f);
             break;
             
-        case 40:
+        case 35:
             trailAlphaDecay = midiToOnePoleTc((float)msg.value, 10, 10000);
             break;
             
-        case 41:
+        case 36:
             trailColorDecay = midiToOnePoleTc((float)msg.value, 10, 10000);
             break;
             
-        case 42:
+        case 37:
             trailMinAlpha = ofMap((float)msg.value, 0, 127, 0.02f, 0.15f);
             break;
             

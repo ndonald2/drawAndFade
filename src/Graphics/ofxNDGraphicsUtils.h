@@ -11,4 +11,9 @@
 #include "ofMain.h"
 
 // Billboard rectangle - rect for displaying a texture. Draws vertices and ARB tex coords.
-extern void drawBillboardRect(int x, int y, int w, int h, int tw, int th);
+extern void ofxBillboardRect(int x, int y, int w, int h, int tw, int th);
+
+
+
+// Circular gradient
+extern void ofxCircularGradient(const ofColor & start, const ofColor & end);

@@ -12,8 +12,8 @@
 //      Compile-time options
 // ================================
 
-// Comment out for no-kinect debug mode (most likely out-of-date)
-//#define USE_KINECT
+// Comment out for no-kinect debug mode
+#define USE_KINECT
 
 // Uncomment to use user tracking instead of hand tracking.
 // Hand tracking is much faster/more accurate, but loses positions occasionally.
@@ -50,7 +50,7 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
         void beginTrails();
         void endTrails();
     
-        void blurUserOutline();
+        void updateUserOutline();
     
         void drawTrails();
         void drawPoiSprites();
@@ -84,12 +84,27 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
         int                         kinectAngle;
     
         // renderer state
-        float   elapsedPhase;
-    
-        // animation options
+        float       elapsedPhase;
         bool        debugMode;
-        bool        showTrails;
+
     
+        // ----- animation options ------
+    
+        // FLAGS
+        bool        bDrawUserOutline;
+        bool        bTrailUserOutline;
+        bool        bDrawHands;
+        bool        bTrailHands;
+        bool        bDrawPoi;
+        bool        bTrailPoi;
+    
+        // CIRCULAR GRADIENT + BACKGROUND
+        ofColor     bgColor;
+        ofColor     gradCircleColor;
+        ofPoint     gradCircleCenter;
+        float       gradCircleRadius;
+    
+        // TRAILS
         ofPoint     trailVelocity;
         ofPoint     trailScale;         // percent increase/decrease per second
         ofPoint     trailScaleAnchor;
@@ -97,19 +112,15 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
         float       trailAlphaDecay;
         float       trailMinAlpha;
     
-        float       poiMaxScaleFactor;
+        // USER OUTLINE
+        ofColor     userOutlineColor;
         float       userShapeScaleFactor;
     
-        // colors
-        ofColor     handsColor;
+        // POI
         ofColor     poiSpriteColor;
-        ofColor     bgColor;
-        ofColor     bgHighlightColor;
+        float       poiMaxScaleFactor;
     
-#ifdef USE_MOUSE
-    ofPoint lastEndPoint;
-    ofPoint lastMousePoint;
-    float   mouseVelocity;
-#endif
+        // HANDS
+        ofColor     handsColor;
     
 };
