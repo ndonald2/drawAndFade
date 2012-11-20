@@ -19,8 +19,8 @@
 // Hand tracking is much faster/more accurate, but loses positions occasionally.
 #define USE_USER_TRACKING
 
-
 void ofApplicationSetAudioInputDeviceId(int deviceId);
+void ofApplicationSetMidiInputDeviceId(int deviceId);
 
 class ofApplication : public ofBaseApp, public ofxMidiListener {
 	public:

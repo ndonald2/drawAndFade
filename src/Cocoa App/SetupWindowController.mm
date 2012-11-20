@@ -8,11 +8,13 @@
 
 #import "SetupWindowController.h"
 #import "RtAudio.h"
+#import "RtMidi.h"
 #import "ofApplication.h"
 
 #define kPreviousResKey             @"previous_resolution"
 #define kPreviousFullscreenKey      @"previous_fullscreen"
 #define kPreviousAudioDeviceKey     @"previous_audio_device"
+#define kPreviousMidiInputDeviceKey @"previous_midi_input"
 
 #define kAudioDeviceName            @"device_name"
 #define kAudioDeviceIndex           @"device_index"
@@ -22,13 +24,6 @@
 
 -(NSComparisonResult)resolutionCompare:(NSString*)resolution;
 
-
-@end
-
-@interface SetupWindowController ()
-
-@property (nonatomic, retain) NSMutableArray *audioDevices;
-
 @end
 
 @implementation SetupWindowController
@@ -36,13 +31,16 @@
 @synthesize resBox = _resBox;
 @synthesize fullscreenCheck = _fullscreenCheck;
 @synthesize audioInputBox = _audioInputBox;
-
+@synthesize midiInputBox = _midiInputBox;
+@synthesize startButton = _startButton;
 @synthesize audioDevices = _audioDevices;
 
 -(void)dealloc{
     [_resBox release];
     [_fullscreenCheck release];
     [_audioInputBox release];
+    [_midiInputBox release];
+    [_startButton release];
     [_audioDevices release];
     [super dealloc];
 }
@@ -50,6 +48,8 @@
 -(void)windowDidLoad{
     
     [super windowDidLoad];
+    
+    [self.startButton becomeFirstResponder];
     
     // resolutions
     CFArrayRef allResolutions = CGDisplayCopyAllDisplayModes(CGMainDisplayID(), NULL);
@@ -89,8 +89,8 @@
     [self.fullscreenCheck setState: prevFullscreen ? NSOnState : NSOffState];
     
     // Audio inputs
-    RtAudio *rtAudio = new RtAudio();
-    unsigned int nDevices = rtAudio->getDeviceCount();
+    RtAudio rtAudio;
+    unsigned int nDevices = rtAudio.getDeviceCount();
     if (nDevices){
         
         self.audioDevices = [NSMutableArray arrayWithCapacity:nDevices];
@@ -98,7 +98,7 @@
         RtAudio::DeviceInfo deviceInfo;
         for (int i=0; i<nDevices; i++){
             try{
-                deviceInfo = rtAudio->getDeviceInfo(i);
+                deviceInfo = rtAudio.getDeviceInfo(i);
             } catch (RtError &error){
                 continue;
             }
@@ -106,7 +106,8 @@
             if (deviceInfo.inputChannels > 0){
                 
                 NSMutableDictionary *deviceDict = [NSMutableDictionary dictionaryWithCapacity:3];
-                NSString *name = [NSString stringWithCString:deviceInfo.name.c_str() encoding:NSUTF8StringEncoding];
+                NSString *name = [NSString stringWithUTF8String:deviceInfo.name.c_str()];
+                
                 if (name){
                     [deviceDict setObject:name forKey:kAudioDeviceName];
                     [deviceDict setObject:[NSNumber numberWithInt:deviceInfo.inputChannels] forKey:kAudioDeviceInputChannels];
@@ -118,21 +119,49 @@
         }
         
         NSString *prevDeviceName = [[NSUserDefaults standardUserDefaults] objectForKey:kPreviousAudioDeviceKey];
-        if (prevDeviceName)
+        if (prevDeviceName && [self.audioInputBox.itemTitles containsObject:prevDeviceName])
         {
             [self.audioInputBox selectItemWithTitle:prevDeviceName];
         }
+        else{
+            [self.audioInputBox selectItemAtIndex:0];
+        }
+    }
+    
+    // midi inputs
+    RtMidiIn rtMidi(RtMidi::MACOSX_CORE);
+    int nMidiInputs = rtMidi.getPortCount();
+    if (nMidiInputs > 0){
+                
+        for (int i=0; i<nMidiInputs; i++){
+            NSString *inputName = [NSString stringWithUTF8String:rtMidi.getPortName(i).c_str()];
+            [self.midiInputBox addItemWithTitle:inputName];
+        }
+        
+        NSString *prevDeviceName = [[NSUserDefaults standardUserDefaults] objectForKey:kPreviousMidiInputDeviceKey];
+        if (prevDeviceName && [self.audioInputBox.itemTitles containsObject:prevDeviceName])
+        {
+            [self.midiInputBox selectItemWithTitle:prevDeviceName];
+        }
+        else{
+            [self.midiInputBox selectItemAtIndex:0];
+        }
+    
     }
 }
 
 - (IBAction)startPressed:(id)sender{
+    
     NSString *selectedRes = [self.resBox titleOfSelectedItem];
     NSArray *resComponents = [selectedRes componentsSeparatedByString:@" x "];
     BOOL fullscreen = self.fullscreenCheck.state == NSOnState;
+    
     NSDictionary *audioDevice = [self.audioDevices objectAtIndex:[self.audioInputBox indexOfSelectedItem]];
     NSString *audioDeviceName = [audioDevice objectForKey:kAudioDeviceName];
     int deviceIndex = [[audioDevice objectForKey:kAudioDeviceIndex] intValue];
     ofApplicationSetAudioInputDeviceId(deviceIndex);
+    ofApplicationSetMidiInputDeviceId(self.midiInputBox.indexOfSelectedItem);
+    
     if (resComponents.count != 2){
         // error message
         return;
@@ -145,8 +174,15 @@
         
         [[NSUserDefaults standardUserDefaults] setObject:selectedRes forKey:kPreviousResKey];
         [[NSUserDefaults standardUserDefaults] setObject:[NSNumber numberWithBool:fullscreen] forKey:kPreviousFullscreenKey];
-        if (audioDeviceName != nil)
+        
+        if (audioDeviceName != nil){
             [[NSUserDefaults standardUserDefaults] setObject:audioDeviceName forKey:kPreviousAudioDeviceKey];
+        }
+        
+        NSString *midiDevice = [self.midiInputBox titleOfSelectedItem];
+        if (midiDevice){
+            [[NSUserDefaults standardUserDefaults] setObject:midiDevice forKey:kPreviousMidiInputDeviceKey];
+        }
         
         [[NSUserDefaults standardUserDefaults] synchronize];
     }

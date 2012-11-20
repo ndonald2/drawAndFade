@@ -7,10 +7,15 @@
 
 #define TRAIL_FBO_SCALE      1.25
 
-static int inputDeviceId = 0;
+static int s_inputAudioDeviceId = 0;
+static int s_inputMidiDeviceId = 0;
 
 void ofApplicationSetAudioInputDeviceId(int deviceId){
-    inputDeviceId = deviceId;
+    s_inputAudioDeviceId = deviceId;
+}
+
+void ofApplicationSetMidiInputDeviceId(int deviceId){
+    s_inputMidiDeviceId = deviceId;
 }
 
 //--------------------------------------------------------------
@@ -127,7 +132,7 @@ void ofApplication::setup(){
     gaussianBlurShader.load("shaders/vanilla.vert", "shaders/gaussian.frag");
     
     // midi setup
-    midiIn.openPort(3);
+    midiIn.openPort(s_inputMidiDeviceId);
     midiIn.addListener(this);
     
     // audio setup
@@ -135,7 +140,7 @@ void ofApplication::setup(){
     
     ofxAudioAnalyzer::Settings audioSettings;
     audioSettings.stereo = true;
-    audioSettings.inputDeviceId = inputDeviceId;
+    audioSettings.inputDeviceId = s_inputAudioDeviceId;
     audioSettings.bufferSize = 512;
     audioAnalyzer.setup(audioSettings);
     
