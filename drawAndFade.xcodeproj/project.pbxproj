@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 42;
+	objectVersion = 45;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -29,20 +29,20 @@
 		0165576B163332F10055185A /* ofxFftw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0165574C163332F10055185A /* ofxFftw.cpp */; };
 		01A1C643163EF2F9004FFED0 /* ofxOpenNI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 01A1C60C163EF2F9004FFED0 /* ofxOpenNI.cpp */; };
 		01A1C644163EF2F9004FFED0 /* ofxOpenNITypes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 01A1C60E163EF2F9004FFED0 /* ofxOpenNITypes.cpp */; };
-		01A1C65D163EF35D004FFED0 /* libnimCodecs.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C64F163EF35D004FFED0 /* libnimCodecs.dylib */; };
-		01A1C65E163EF35D004FFED0 /* libnimMockNodes.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C650163EF35D004FFED0 /* libnimMockNodes.dylib */; };
-		01A1C65F163EF35D004FFED0 /* libnimRecorder.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C651163EF35D004FFED0 /* libnimRecorder.dylib */; };
-		01A1C660163EF35D004FFED0 /* libOpenNI.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C652163EF35D004FFED0 /* libOpenNI.dylib */; };
-		01A1C661163EF35D004FFED0 /* libusb-1.0.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C653163EF35D004FFED0 /* libusb-1.0.0.dylib */; };
-		01A1C662163EF35D004FFED0 /* libXnCore.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C654163EF35D004FFED0 /* libXnCore.dylib */; };
-		01A1C663163EF35D004FFED0 /* libXnDDK.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C655163EF35D004FFED0 /* libXnDDK.dylib */; };
-		01A1C664163EF35D004FFED0 /* libXnDeviceFile.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C656163EF35D004FFED0 /* libXnDeviceFile.dylib */; };
-		01A1C665163EF35D004FFED0 /* libXnDeviceSensorV2KM.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C657163EF35D004FFED0 /* libXnDeviceSensorV2KM.dylib */; };
-		01A1C666163EF35D004FFED0 /* libXnFormats.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C658163EF35D004FFED0 /* libXnFormats.dylib */; };
-		01A1C667163EF35D004FFED0 /* libXnVCNITE_1_5_2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C659163EF35D004FFED0 /* libXnVCNITE_1_5_2.dylib */; };
-		01A1C668163EF35D004FFED0 /* libXnVFeatures_1_5_2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C65A163EF35D004FFED0 /* libXnVFeatures_1_5_2.dylib */; };
-		01A1C669163EF35D004FFED0 /* libXnVHandGenerator_1_5_2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C65B163EF35D004FFED0 /* libXnVHandGenerator_1_5_2.dylib */; };
-		01A1C66A163EF35D004FFED0 /* libXnVNite_1_5_2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C65C163EF35D004FFED0 /* libXnVNite_1_5_2.dylib */; };
+		01A1C65D163EF35D004FFED0 /* libnimCodecs.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C64F163EF35D004FFED0 /* libnimCodecs.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
+		01A1C65E163EF35D004FFED0 /* libnimMockNodes.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C650163EF35D004FFED0 /* libnimMockNodes.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
+		01A1C65F163EF35D004FFED0 /* libnimRecorder.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C651163EF35D004FFED0 /* libnimRecorder.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
+		01A1C660163EF35D004FFED0 /* libOpenNI.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C652163EF35D004FFED0 /* libOpenNI.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
+		01A1C661163EF35D004FFED0 /* libusb-1.0.0.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C653163EF35D004FFED0 /* libusb-1.0.0.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
+		01A1C662163EF35D004FFED0 /* libXnCore.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C654163EF35D004FFED0 /* libXnCore.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
+		01A1C663163EF35D004FFED0 /* libXnDDK.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C655163EF35D004FFED0 /* libXnDDK.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
+		01A1C664163EF35D004FFED0 /* libXnDeviceFile.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C656163EF35D004FFED0 /* libXnDeviceFile.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
+		01A1C665163EF35D004FFED0 /* libXnDeviceSensorV2KM.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C657163EF35D004FFED0 /* libXnDeviceSensorV2KM.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
+		01A1C666163EF35D004FFED0 /* libXnFormats.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C658163EF35D004FFED0 /* libXnFormats.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
+		01A1C667163EF35D004FFED0 /* libXnVCNITE_1_5_2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C659163EF35D004FFED0 /* libXnVCNITE_1_5_2.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
+		01A1C668163EF35D004FFED0 /* libXnVFeatures_1_5_2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C65A163EF35D004FFED0 /* libXnVFeatures_1_5_2.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
+		01A1C669163EF35D004FFED0 /* libXnVHandGenerator_1_5_2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C65B163EF35D004FFED0 /* libXnVHandGenerator_1_5_2.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
+		01A1C66A163EF35D004FFED0 /* libXnVNite_1_5_2.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 01A1C65C163EF35D004FFED0 /* libXnVNite_1_5_2.dylib */; settings = {ATTRIBUTES = (Weak, ); }; };
 		01B7152816595371006A7B0A /* ofxRtMidiIn.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 01B714EC16595370006A7B0A /* ofxRtMidiIn.cpp */; };
 		01B7152916595371006A7B0A /* ofxRtMidiOut.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 01B714EE16595370006A7B0A /* ofxRtMidiOut.cpp */; };
 		01B7152A16595371006A7B0A /* RtMidi.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 01B714F316595370006A7B0A /* RtMidi.cpp */; };

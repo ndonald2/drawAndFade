@@ -8,9 +8,24 @@
 
 #include "ofxNDGraphicsUtils.h"
 
+ofxNDHSBColor::ofxNDHSBColor(float _h, float _s, float _b, float _a)
+{
+    h = _h;
+    s = _s;
+    b = _b;
+    a = _a;
+}
+
+ofColor ofxNDHSBColor::getOfColor()
+{
+    ofColor returnColor = ofColor::fromHsb(h, s, b);
+    returnColor.a = a;
+    return returnColor;
+}
+
 static ofMesh _nd_cg_mesh;
 
-void ofxBillboardRect(int x, int y, int w, int h, int tw, int th)
+void ofxNDBillboardRect(int x, int y, int w, int h, int tw, int th)
 {
     GLfloat tex_coords[] = {
 		0,0,
@@ -33,7 +48,7 @@ void ofxBillboardRect(int x, int y, int w, int h, int tw, int th)
 	glDisableClientState( GL_TEXTURE_COORD_ARRAY );
 }
 
-void ofxCircularGradient(const ofColor & start, const ofColor & end)
+void ofxNDCircularGradient(const ofColor & start, const ofColor & end)
 {
     int n = 32; // circular gradient resolution
     

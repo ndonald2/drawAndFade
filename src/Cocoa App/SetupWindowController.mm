@@ -139,7 +139,7 @@
         }
         
         NSString *prevDeviceName = [[NSUserDefaults standardUserDefaults] objectForKey:kPreviousMidiInputDeviceKey];
-        if (prevDeviceName && [self.audioInputBox.itemTitles containsObject:prevDeviceName])
+        if (prevDeviceName && [self.midiInputBox.itemTitles containsObject:prevDeviceName])
         {
             [self.midiInputBox selectItemWithTitle:prevDeviceName];
         }
@@ -159,6 +159,7 @@
     NSDictionary *audioDevice = [self.audioDevices objectAtIndex:[self.audioInputBox indexOfSelectedItem]];
     NSString *audioDeviceName = [audioDevice objectForKey:kAudioDeviceName];
     int deviceIndex = [[audioDevice objectForKey:kAudioDeviceIndex] intValue];
+    
     ofApplicationSetAudioInputDeviceId(deviceIndex);
     ofApplicationSetMidiInputDeviceId(self.midiInputBox.indexOfSelectedItem);
     

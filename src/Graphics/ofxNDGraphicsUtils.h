@@ -10,10 +10,24 @@
 
 #include "ofMain.h"
 
+/// HSB Color representation
+/// Created to circumvent ofColor's resetting of hue/sat when changing to full black or white
+class ofxNDHSBColor {
+    
+public:
+    ofxNDHSBColor(float _h = 0, float _s = 0, float _b = 0, float _a = 255);
+    ofColor getOfColor();
+    
+    float h;
+    float s;
+    float b;
+    float a;
+};
+
 // Billboard rectangle - rect for displaying a texture. Draws vertices and ARB tex coords.
-extern void ofxBillboardRect(int x, int y, int w, int h, int tw, int th);
+extern void ofxNDBillboardRect(int x, int y, int w, int h, int tw, int th);
 
 
 
 // Circular gradient
-extern void ofxCircularGradient(const ofColor & start, const ofColor & end);
+extern void ofxNDCircularGradient(const ofColor & start, const ofColor & end);

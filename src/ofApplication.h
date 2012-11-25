@@ -7,6 +7,7 @@
 #include "ofxOpenCv.h"
 #include "ofxAudioAnalyzer.h"
 #include "ofxHandPhysics.h"
+#include "ofxNDGraphicsUtils.h"
 
 // ================================
 //      Compile-time options
@@ -84,7 +85,6 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
         // renderer state
         float       elapsedPhase;
         bool        debugMode;
-
     
         // ----- animation options ------
     
@@ -97,11 +97,11 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
         bool        bTrailPoi;
     
         // CIRCULAR GRADIENT + BACKGROUND
-        ofColor     bgColor;
-        ofColor     gradCircleColor;
-        ofPoint     gradCircleCenter;
-        float       gradCircleRadius;
-    
+        ofxNDHSBColor   bgColorHSB;
+        ofxNDHSBColor   gradCircleColorHSB;
+        ofPoint         gradCircleCenter;
+        float           gradCircleRadius;
+        
         // TRAILS
         ofPoint     trailVelocity;
         ofPoint     trailScale;         // percent increase/decrease per second
@@ -111,14 +111,15 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
         float       trailMinAlpha;
     
         // USER OUTLINE
-        ofColor     userOutlineColor;
-        float       userShapeScaleFactor;
+        ofxNDHSBColor   userOutlineColorHSB;
+        float           userShapeScaleFactor;
     
         // POI
-        ofColor     poiSpriteColor;
-        float       poiMaxScaleFactor;
+        ofxNDHSBColor   poiSpriteColorHSB;
+        float           poiMaxScaleFactor;
     
         // HANDS
-        ofColor     handsColor;
+        ofxNDHSBColor   handsColorHSB;
+
     
 };

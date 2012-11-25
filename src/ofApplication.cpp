@@ -1,5 +1,4 @@
 #include "ofApplication.h"
-#include "ofxNDGraphicsUtils.h"
 
 #define POI_MIN_SCALE_FACTOR 0.01
 
@@ -70,8 +69,8 @@ void ofApplication::setup(){
     bTrailPoi = true;
 
     // CIRCULAR GRADIENT + BACKGROUND
-    bgColor = ofColor(0,0,0);
-    gradCircleColor = ofColor(255,255,255,0);
+    bgColorHSB = ofxNDHSBColor(0,0,0);    
+    gradCircleColorHSB = ofxNDHSBColor(0,0,255,0);
     gradCircleCenter = ofGetWindowSize()/2.0f;
     gradCircleRadius = 1.0f;
 
@@ -85,14 +84,14 @@ void ofApplication::setup(){
     trailScaleAnchor = ofPoint(0.5f, 0.5f);
 
     // USER OUTLINE
-    userOutlineColor = ofColor(128,128,128,200);
+    userOutlineColorHSB = ofxNDHSBColor(0,0,40,200);
     userShapeScaleFactor = 1.1f;
 
     // POI
     poiMaxScaleFactor = 0.1f;
 
     // HANDS    
-    handsColor = ofColor(220,220,220);
+    handsColorHSB = ofxNDHSBColor(0,0,200);
     
     ofFbo::Settings fboSettings;
     fboSettings.width = ofGetWidth();
@@ -134,6 +133,7 @@ void ofApplication::setup(){
     gaussianBlurShader.load("shaders/vanilla.vert", "shaders/gaussian.frag");
     
     // midi setup
+    midiIn.setVerbose(false);
     midiIn.openPort(s_inputMidiDeviceId);
     midiIn.addListener(this);
     
@@ -247,17 +247,19 @@ void ofApplication::draw(){
     ofSetColor(255, 255, 255);
     ofEnableAlphaBlending();
     
-    ofBackground(0,0,0);
+    ofBackground(bgColorHSB.getOfColor());
     
     float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity;
-    float bright = ofMap(lowF, 0.1f, 2.0f, 0.0f, 1.0f, true);
+    float bright = ofMap(lowF, 0.25f, 3.0f, 0.0f, 1.0f, true);
     
-    ofColor scaledGradCircleColor = gradCircleColor;
+    ofColor scaledGradCircleColor = gradCircleColorHSB.getOfColor();
     scaledGradCircleColor.a *= bright;
+    ofColor clearGCColor = bgColorHSB.getOfColor();
+    clearGCColor.a = 0;
     ofPushMatrix();
     ofTranslate(gradCircleCenter);
     ofScale(gradCircleRadius, gradCircleRadius);
-    ofxCircularGradient(scaledGradCircleColor, ofColor(0,0,0,0));
+    ofxNDCircularGradient(scaledGradCircleColor, clearGCColor);
     ofPopMatrix();
     
     // Draw the main FBO (TODO: inversion effects maybe?)
@@ -322,7 +324,7 @@ void ofApplication::beginTrails()
     trailsShader.setUniform1f("alphaMin", trailMinAlpha);
     int w = trailsFbo.getWidth();
     int h = trailsFbo.getHeight();
-    ofxBillboardRect(0, 0, w, h, w, h);
+    ofxNDBillboardRect(0, 0, w, h, w, h);
     trailsShader.end();
     
     ofPopMatrix();
@@ -377,7 +379,7 @@ void ofApplication::updateUserOutline()
     userMaskShader.begin();
     userMaskShader.setUniformTexture("depthTexture", depthTex, 1);
     userMaskShader.setUniformTexture("maskTexture", maskTex, 2);
-    ofxBillboardRect(0, 0, userFbo.getWidth(), userFbo.getHeight(), depthTex.getWidth(), depthTex.getHeight());
+    ofxNDBillboardRect(0, 0, userFbo.getWidth(), userFbo.getHeight(), depthTex.getWidth(), depthTex.getHeight());
     userMaskShader.end();
     
     // ===== blur =====
@@ -390,12 +392,12 @@ void ofApplication::updateUserOutline()
     gaussianBlurShader.setUniform1i("isVertical", 0);
     gaussianBlurShader.setUniformTexture("blurTexture",  userFbo.getTextureReference(), 1);
     
-    ofxBillboardRect(0, 0, userFbo.getWidth(), userFbo.getHeight(), depthTex.getWidth(), depthTex.getHeight());
+    ofxNDBillboardRect(0, 0, userFbo.getWidth(), userFbo.getHeight(), depthTex.getWidth(), depthTex.getHeight());
     
     gaussianBlurShader.setUniform1i("isVertical", 1);
     gaussianBlurShader.setUniformTexture("blurTexture", userFbo.getTextureReference(), 1);
     
-    ofxBillboardRect(0, 0, userFbo.getWidth(), userFbo.getHeight(), depthTex.getWidth(), depthTex.getHeight());
+    ofxNDBillboardRect(0, 0, userFbo.getWidth(), userFbo.getHeight(), depthTex.getWidth(), depthTex.getHeight());
     
     gaussianBlurShader.end();
     
@@ -406,7 +408,7 @@ void ofApplication::updateUserOutline()
 void ofApplication::drawPoiSprites()
 {
     float hue = ((cosf(0.05f*elapsedPhase)+1.0f)/2.0f)*255.0f;
-    poiSpriteColor = ofColor::fromHsb(hue, 255.0f, 255.0f);
+    poiSpriteColorHSB = ofxNDHSBColor(hue, 255.0f, 255.0f);
     
     float highPSF = audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_HIGH)*audioSensitivity;
     float shapeRadius = ofMap(highPSF, 0.3f, 4.0f, POI_MIN_SCALE_FACTOR*ofGetWidth(), poiMaxScaleFactor*ofGetWidth(), true);
@@ -431,7 +433,7 @@ void ofApplication::drawPoiSprites()
         ofPoint hp1 = hp;
 #endif
         
-        ofSetColor(poiSpriteColor);
+        ofSetColor(poiSpriteColorHSB.getOfColor());
         ofFill();
         
         
@@ -473,7 +475,7 @@ void ofApplication::drawPoiSprites()
 
 void ofApplication::drawHandSprites()
 {
-    ofSetColor(handsColor);
+    ofSetColor(handsColorHSB.getOfColor());
     float midEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_MID)*audioSensitivity;
     float radius = ofMap(midEnergy, 0.1f, 5.0f, 4.0f, HANDS_MAX_SCALE_FACTOR*ofGetWidth(), false);
     
@@ -609,6 +611,9 @@ void ofApplication::dragEvent(ofDragInfo dragInfo){
 
 void ofApplication::newMidiMessage(ofxMidiMessage& msg)
 {
+    static float w = ofGetWidth();
+    static float h = ofGetHeight();
+    
     // filter by control number (any channel)
     switch (msg.control) {
             
@@ -639,44 +644,46 @@ void ofApplication::newMidiMessage(ofxMidiMessage& msg)
             
             
         // ----- BG + GRADIENT -----
+        // Colors done this way because ofColor inherently resets Hue/Sat when reaching full black/white
+            
         case 10:
-            bgColor.setHue(ofMap((float)msg.value, 0, 127, 0, 255));
+            bgColorHSB.h = ofMap((float)msg.value, 0, 127, 0, 255);
             break;
             
         case 11:
-            bgColor.setSaturation(ofMap((float)msg.value, 0, 127, 0, 255));
+            bgColorHSB.s = ofMap((float)msg.value, 0, 127, 0, 255);
             break;
             
         case 12:
-            bgColor.setBrightness(ofMap((float)msg.value, 0, 127, 0, 255));
+            bgColorHSB.b = ofMap((float)msg.value, 0, 127, 0, 255);
             break;
             
         case 13:
-            gradCircleColor.setHue(ofMap((float)msg.value, 0, 127, 0, 255));
+            gradCircleColorHSB.h = ofMap((float)msg.value, 0, 127, 0, 255);
             break;
             
         case 14:
-            gradCircleColor.setSaturation(ofMap((float)msg.value, 0, 127, 0, 255));
+            gradCircleColorHSB.s = ofMap((float)msg.value, 0, 127, 0, 255);
             break;
             
         case 15:
-            gradCircleColor.setBrightness(ofMap((float)msg.value, 0, 127, 0, 255));
+            gradCircleColorHSB.b = ofMap((float)msg.value, 0, 127, 0, 255);
             break;
             
         case 16:
-            gradCircleColor.a = ofMap((float)msg.value, 0, 127, 0, 255);
+            gradCircleColorHSB.a = ofMap((float)msg.value, 0, 127, 0, 255);
             break;
             
         case 17:
-            gradCircleCenter.x = ofMap((float)msg.value, 0, 127, 0, ofGetWidth());
+            gradCircleCenter.x = ofMap((float)msg.value, 0, 127, 0, w);
             break;
             
         case 18:
-            gradCircleCenter.y = ofMap((float)msg.value, 0, 127, 0, ofGetHeight());
+            gradCircleCenter.y = ofMap((float)msg.value, 0, 127, 0, h);
             break;
             
         case 19:
-            gradCircleRadius = ofMap((float)msg.value, 0, 127, 1, ofGetWidth() * 2);
+            gradCircleRadius = ofMap((float)msg.value, 0, 127, 1, h);
             break;
             
         // ----- TRAILS -----
@@ -715,7 +722,7 @@ void ofApplication::newMidiMessage(ofxMidiMessage& msg)
             
         // Audio tuning
         case 120:
-            audioSensitivity = ofMap((float)msg.value, 0, 127, 0.5f, 4.0f, true);
+            audioSensitivity = ofMap((float)msg.value, 0, 127, 0.5f, 2.0f, true);
             break;
             
         default:
