@@ -13,10 +13,10 @@
 // ================================
 
 // Comment out for no-kinect debug mode
-#define USE_KINECT
+//#define USE_KINECT
 
 // Uncomment to use user tracking instead of hand tracking.
-// Hand tracking is much faster/more accurate, but loses positions occasionally.
+// Hand tracking is faster and more accurate, but loses positions occasionally.
 #define USE_USER_TRACKING
 
 void ofApplicationSetAudioInputDeviceId(int deviceId);

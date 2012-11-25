@@ -50,7 +50,6 @@
 		01B7154716595AA7006A7B0A /* CoreMIDI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 01B7154616595AA7006A7B0A /* CoreMIDI.framework */; };
 		01D12D8E164EC2650050A17F /* ofxHardwareDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 01D12D8C164EC2650050A17F /* ofxHardwareDriver.cpp */; };
 		01E09EE716503FCF0097E3D9 /* ofxNDGraphicsUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 01E09EE616503FCF0097E3D9 /* ofxNDGraphicsUtils.cpp */; };
-		01E09EEF16505D540097E3D9 /* gaussian.frag in Sources */ = {isa = PBXBuildFile; fileRef = 01E09EED16505D540097E3D9 /* gaussian.frag */; };
 		01E4BDEE163329C8003A4BCA /* ofxAudioAnalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 01E4BDEC163329C8003A4BCA /* ofxAudioAnalyzer.cpp */; };
 		01F6FD2C1631D0AA00C5A10B /* GLView.mm in Sources */ = {isa = PBXBuildFile; fileRef = 01F6FD271631D0AA00C5A10B /* GLView.mm */; };
 		01F6FD2D1631D0AA00C5A10B /* ofxCocoaDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 01F6FD291631D0AA00C5A10B /* ofxCocoaDelegate.mm */; };
@@ -1325,8 +1324,8 @@
 			buildPhases = (
 				E4B69B580A3A1756003C02F2 /* Sources */,
 				E4B69B590A3A1756003C02F2 /* Frameworks */,
-				E4B6FFFD0C3F9AB9008CF71C /* ShellScript */,
 				E4C2427710CC5ABF004149E2 /* CopyFiles */,
+				E4B6FFFD0C3F9AB9008CF71C /* Run OpenNI Install Script */,
 			);
 			buildRules = (
 			);
@@ -1380,18 +1379,19 @@
 /* End PBXReferenceProxy section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		E4B6FFFD0C3F9AB9008CF71C /* ShellScript */ = {
+		E4B6FFFD0C3F9AB9008CF71C /* Run OpenNI Install Script */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputPaths = (
 			);
+			name = "Run OpenNI Install Script";
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cp -f ../../../libs/fmodex/lib/osx/libfmodex.dylib \"$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS/libfmodex.dylib\"; install_name_tool -change ./libfmodex.dylib @executable_path/libfmodex.dylib \"$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS/$PRODUCT_NAME\";";
+			shellScript = "# openFrameworks install script\ncp -f ../../../libs/fmodex/lib/osx/libfmodex.dylib \"$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS/libfmodex.dylib\"; install_name_tool -change ./libfmodex.dylib @executable_path/libfmodex.dylib \"$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS/$PRODUCT_NAME\";\n\n\n# copy openni libraries\necho \"\"\necho \"======================================\"\necho \"Copying openni libraries to bundle....\"\necho \"======================================\"\necho \"\"\ncd bin/data/openni/lib\n\nlibs=(*.dylib)\necho ${libs[@]}\n\nfor lib in *.dylib ; do\n\necho ${lib}\ncp -f ${lib} \"$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS/${lib}\"\necho cp -f ${lib} \"$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS/${lib}\"\n\ndone\n\n# change library-to-executable install names\necho \"\"\necho \"======================================\"\necho \"Changing openni library install names....\"\necho \"======================================\"\necho \"\"\ncd $TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS\n\nlines=`otool -L $PRODUCT_NAME`\necho ${lines}\n\nfor linked_lib in ${lines} ; do\n\nlibname=`basename ${linked_lib}`\n\ncheck_lib=`echo ${libs[@]} | grep -i ${libname}`\n\nif [ \"$check_lib\" != \"\" ] ; then\necho \"---------------------\"\necho \"$libname\"\ninstall_name_tool -change ${linked_lib} \"@executable_path/${libname}\" $PRODUCT_NAME\necho install_name_tool -change ${linked_lib} \"@executable_path/${libname}\" $PRODUCT_NAME\n\nfi\ndone\n\n# change library-to-library install names\necho \"\"\necho \"======================================\"\necho \"Changing inter-library install names....\"\necho \"======================================\"\necho \"\"\n\nfor openni_lib in ${libs[@]} ; do\n\necho \"---------------------\"\necho \"${openni_lib}\"\n\nliblibs=`otool -L ${openni_lib}`\necho ${liblibs}\n\nfor liblib in ${liblibs[@]} ; do\n\nlibname=`basename ${liblib}`\ncheck_lib=`echo ${libs[@]} | grep -i ${libname}`\nif [ \"$check_lib\" != \"\" ] && [ \"$libname\" != \"$openni_lib\" ] ; then\n\ninstall_name_tool -change ${liblib} \"@executable_path/${libname}\" ${openni_lib}\necho install_name_tool -change ${liblib} \"@executable_path/${libname}\" ${openni_lib}\n\nfi\n\ndone\n\ndone\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -1429,7 +1429,6 @@
 				014BFFF7163F04AE003A4B5F /* ofxHandPhysics.cpp in Sources */,
 				01D12D8E164EC2650050A17F /* ofxHardwareDriver.cpp in Sources */,
 				01E09EE716503FCF0097E3D9 /* ofxNDGraphicsUtils.cpp in Sources */,
-				01E09EEF16505D540097E3D9 /* gaussian.frag in Sources */,
 				01B7152816595371006A7B0A /* ofxRtMidiIn.cpp in Sources */,
 				01B7152916595371006A7B0A /* ofxRtMidiOut.cpp in Sources */,
 				01B7152A16595371006A7B0A /* RtMidi.cpp in Sources */,
