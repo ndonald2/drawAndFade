@@ -29,17 +29,19 @@ float midiToOnePoleTc(float midiValue, float minMs, float maxMs)
 
 ofApplication::ofApplication()
 {
+#ifdef USE_KINECT
     handPhysics = NULL;
+#endif
 }
 
 ofApplication::~ofApplication()
 {
+#ifdef USE_KINECT
     if (handPhysics){
         delete handPhysics;
         handPhysics = NULL;
     }
     
-#ifdef USE_KINECT
     // prevents crashing on exit (sometimes)
     kinectOpenNI.stop();
     kinectOpenNI.waitForThread();
@@ -48,6 +50,10 @@ ofApplication::~ofApplication()
 
 void ofApplication::setup(){
     
+    // Base data path
+    ofSetDataPathRoot("../Resources/");
+    
+    // Renderer
     ofSetVerticalSync(true);
     ofEnableSmoothing();
     ofEnableArbTex();
@@ -60,8 +66,8 @@ void ofApplication::setup(){
     bTrailUserOutline = true;
     bDrawHands = false;
     bTrailHands = false;
-    bDrawPoi = false;
-    bTrailPoi = false;
+    bDrawPoi = true;
+    bTrailPoi = true;
 
     // CIRCULAR GRADIENT + BACKGROUND
     bgColor = ofColor(0,0,0);
@@ -87,10 +93,6 @@ void ofApplication::setup(){
 
     // HANDS    
     handsColor = ofColor(220,220,220);
-    
-#ifdef USE_MOUSE
-    mouseVelocity = 0.0f;
-#endif
     
     ofFbo::Settings fboSettings;
     fboSettings.width = ofGetWidth();
@@ -200,6 +202,7 @@ void ofApplication::setup(){
     handPhysics->gravity = ofVec2f(0,7000.0f);
     handPhysics->physicsEnabled = true;
 #endif
+    
 }
 
 //--------------------------------------------------------------
@@ -244,7 +247,7 @@ void ofApplication::draw(){
     ofSetColor(255, 255, 255);
     ofEnableAlphaBlending();
     
-    ofBackground(bgColor);
+    ofBackground(0,0,0);
     
     float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity;
     float bright = ofMap(lowF, 0.1f, 2.0f, 0.0f, 1.0f, true);
@@ -262,7 +265,9 @@ void ofApplication::draw(){
 
     if (debugMode){
         
+#ifdef USE_KINECT
         kinectOpenNI.drawSkeletons(0, 0, ofGetWidth(), ofGetHeight());
+#endif
         
         ofSetColor(255, 255, 255);
         stringstream ss;
@@ -353,6 +358,7 @@ void ofApplication::drawTrails()
 
 void ofApplication::updateUserOutline()
 {
+#ifdef USE_KINECT
     if (kinectOpenNI.getNumTrackedUsers() == 0)
         return;
     
@@ -394,6 +400,7 @@ void ofApplication::updateUserOutline()
     gaussianBlurShader.end();
     
     userFbo.end();
+#endif
 }
 
 void ofApplication::drawPoiSprites()
@@ -503,6 +510,7 @@ void ofApplication::drawHandSprites()
     
 void ofApplication::drawUserOutline()
 {
+#ifdef USE_KINECT
     float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity;
     float scale = debugMode ? 1.0 : ofMap(lowF, 0.5f, 2.0f, 1.0f, userShapeScaleFactor);
     ofSetColor(userOutlineColor);
@@ -511,6 +519,7 @@ void ofApplication::drawUserOutline()
     ofTranslate(-ofPoint(mainFbo.getWidth(), mainFbo.getHeight())*(scale - 1.0f)/2.0f);
     userFbo.getTextureReference().draw(0,0,mainFbo.getWidth(),mainFbo.getHeight());
     ofPopMatrix();
+#endif
 }
 
 #pragma mark - Inputs
@@ -520,6 +529,7 @@ void ofApplication::keyPressed(int key){
     
     switch (key) {
             
+#ifdef USE_KINECT
         case OF_KEY_UP:
             kinectAngle = CLAMP(kinectAngle + 1, -30, 30);
             kinectDriver.setTiltAngle(kinectAngle);
@@ -529,6 +539,7 @@ void ofApplication::keyPressed(int key){
             kinectAngle = CLAMP(kinectAngle - 1, -30, 30);
             kinectDriver.setTiltAngle(kinectAngle);
             break;
+#endif
             
         case '=':
             audioSensitivity = CLAMP(audioSensitivity*1.1f, 0.5f, 4.0f);

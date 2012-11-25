@@ -12,9 +12,6 @@
 //      Compile-time options
 // ================================
 
-// Comment out for no-kinect debug mode
-//#define USE_KINECT
-
 // Uncomment to use user tracking instead of hand tracking.
 // Hand tracking is faster and more accurate, but loses positions occasionally.
 #define USE_USER_TRACKING
@@ -78,11 +75,12 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
         float                       audioSensitivity;
     
         // kinect
+#ifdef USE_KINECT
         ofxOpenNI                   kinectOpenNI;
         ofxHardwareDriver           kinectDriver;
         ofxHandPhysicsManager *     handPhysics;
         int                         kinectAngle;
-    
+#endif
         // renderer state
         float       elapsedPhase;
         bool        debugMode;
