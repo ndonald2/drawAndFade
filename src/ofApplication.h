@@ -65,15 +65,17 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
         ofShader        trailsShader;
         ofShader        gaussianBlurShader;
         ofShader        userMaskShader;
-
     
         // midi
         ofxMidiIn       midiIn;
     
-    
         // audio
         ofxAudioAnalyzer            audioAnalyzer;
         float                       audioSensitivity;
+        float                       audioLowFreq;
+        float                       audioMidFreq;
+        float                       audioHiFreq;
+        float                       audioHiPSF;
     
         // kinect
 #ifdef USE_KINECT

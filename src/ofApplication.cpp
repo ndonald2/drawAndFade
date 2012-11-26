@@ -49,9 +49,6 @@ ofApplication::~ofApplication()
 
 void ofApplication::setup(){
     
-    // Base data path
-    ofSetDataPathRoot("../Resources/");
-    
     // Renderer
     ofSetVerticalSync(true);
     ofEnableSmoothing();
@@ -65,11 +62,11 @@ void ofApplication::setup(){
     bTrailUserOutline = true;
     bDrawHands = false;
     bTrailHands = false;
-    bDrawPoi = true;
-    bTrailPoi = true;
+    bDrawPoi = false;
+    bTrailPoi = false;
 
     // CIRCULAR GRADIENT + BACKGROUND
-    bgColorHSB = ofxNDHSBColor(0,0,0);    
+    bgColorHSB = ofxNDHSBColor(0,0,255);
     gradCircleColorHSB = ofxNDHSBColor(0,0,255,0);
     gradCircleCenter = ofGetWindowSize()/2.0f;
     gradCircleRadius = 1.0f;
@@ -84,7 +81,7 @@ void ofApplication::setup(){
     trailScaleAnchor = ofPoint(0.5f, 0.5f);
 
     // USER OUTLINE
-    userOutlineColorHSB = ofxNDHSBColor(0,0,40,200);
+    userOutlineColorHSB = ofxNDHSBColor(0,0,255);
     userShapeScaleFactor = 1.1f;
 
     // POI
@@ -207,7 +204,9 @@ void ofApplication::setup(){
 
 //--------------------------------------------------------------
 void ofApplication::update(){
-
+    
+    audioLowFreq = ofMap(audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity, 0.25f, 3.0f, 0.0f, 1.0f, true);
+    audioHiPSF = ofMap(audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_HIGH)*audioSensitivity, 0.3f, 4.0f, 0.0f, 1.0f, true);
     elapsedPhase = 2.0*M_PI*ofGetElapsedTimef();
 
 #ifdef USE_KINECT
@@ -218,7 +217,6 @@ void ofApplication::update(){
     
     // draw to FBOs
     glDisable(GL_DEPTH_TEST);
-    ofDisableBlendMode();
     
     beginTrails();
     if (bDrawUserOutline && bTrailUserOutline) drawUserOutline();
@@ -226,7 +224,6 @@ void ofApplication::update(){
     if (bDrawPoi && bTrailPoi) drawPoiSprites();
     endTrails();
     
-    ofEnableBlendMode(OF_BLENDMODE_ALPHA);
     mainFbo.begin();
     ofClear(0,0,0,0);
     
@@ -248,12 +245,8 @@ void ofApplication::draw(){
     ofEnableAlphaBlending();
     
     ofBackground(bgColorHSB.getOfColor());
-    
-    float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity;
-    float bright = ofMap(lowF, 0.25f, 3.0f, 0.0f, 1.0f, true);
-    
     ofColor scaledGradCircleColor = gradCircleColorHSB.getOfColor();
-    scaledGradCircleColor.a *= bright;
+    scaledGradCircleColor.a *= audioLowFreq;
     ofColor clearGCColor = bgColorHSB.getOfColor();
     clearGCColor.a = 0;
     ofPushMatrix();
@@ -337,17 +330,18 @@ void ofApplication::beginTrails()
 
 void ofApplication::endTrails()
 {
-    ofPopMatrix();
-
     ofDisableBlendMode();
+    ofPopMatrix();
     ofSetColor(255,255,255);
     trailsFbo.setActiveDrawBuffer(1);
+    ofClear(0,0,0,0);
     trailsFbo.getTextureReference(0).draw(0,0);
     trailsFbo.end();
 }
 
 void ofApplication::drawTrails()
 {
+    ofEnableBlendMode(OF_BLENDMODE_ALPHA);
     ofSetColor(255, 255, 255);
     ofPushMatrix();
     ofPoint trailTrans = -ofPoint(ofGetWidth(), ofGetHeight())*(TRAIL_FBO_SCALE - 1.0f)/2.0f;
@@ -371,9 +365,9 @@ void ofApplication::updateUserOutline()
     
     ofTexture & depthTex = kinectOpenNI.getDepthTextureReference();
     ofTexture & maskTex = kinectOpenNI.getTrackedUser(0).getMaskTextureReference();
-    float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW);
     
     userFbo.begin();
+    ofClear(0,0,0,0);
     
     // ===== mask =====
     userMaskShader.begin();
@@ -385,7 +379,7 @@ void ofApplication::updateUserOutline()
     // ===== blur =====
     gaussianBlurShader.begin();
     
-    float blurAmt = ofMap(lowF, 0.1f, 3.0f, 0.01f, 15.0f, true)*audioSensitivity;
+    float blurAmt = 4.0f; //ofMap(audioLowFreq, 0.0f, 1.0f, 0.01f, 15.0f, true);
     
     gaussianBlurShader.setUniform1f("sigma", blurAmt);
     gaussianBlurShader.setUniform1f("nBlurPixels", 15.0f);
@@ -410,8 +404,7 @@ void ofApplication::drawPoiSprites()
     float hue = ((cosf(0.05f*elapsedPhase)+1.0f)/2.0f)*255.0f;
     poiSpriteColorHSB = ofxNDHSBColor(hue, 255.0f, 255.0f);
     
-    float highPSF = audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_HIGH)*audioSensitivity;
-    float shapeRadius = ofMap(highPSF, 0.3f, 4.0f, POI_MIN_SCALE_FACTOR*ofGetWidth(), poiMaxScaleFactor*ofGetWidth(), true);
+    float shapeRadius = ofMap(audioHiPSF, 0.0, 1.0, POI_MIN_SCALE_FACTOR*ofGetWidth(), poiMaxScaleFactor*ofGetWidth(), true);
     
 #ifdef USE_KINECT
     for (int i=0; i<handPhysics->getNumTrackedHands(); i++)
@@ -513,9 +506,9 @@ void ofApplication::drawHandSprites()
 void ofApplication::drawUserOutline()
 {
 #ifdef USE_KINECT
-    float lowF = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity;
-    float scale = debugMode ? 1.0 : ofMap(lowF, 0.5f, 2.0f, 1.0f, userShapeScaleFactor);
-    ofSetColor(userOutlineColor);
+    ofEnableBlendMode(OF_BLENDMODE_ALPHA);
+    float scale = debugMode ? 1.0 : ofMap(audioLowFreq, 0.0f, 1.0f, 1.0f, userShapeScaleFactor, true);
+    ofSetColor(userOutlineColorHSB.getOfColor());
     ofPushMatrix();
     ofScale(scale, scale);
     ofTranslate(-ofPoint(mainFbo.getWidth(), mainFbo.getHeight())*(scale - 1.0f)/2.0f);

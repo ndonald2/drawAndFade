@@ -382,7 +382,6 @@
 		01A1C60E163EF2F9004FFED0 /* ofxOpenNITypes.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxOpenNITypes.cpp; sourceTree = "<group>"; };
 		01A1C60F163EF2F9004FFED0 /* ofxOpenNITypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxOpenNITypes.h; sourceTree = "<group>"; };
 		01A1C610163EF2F9004FFED0 /* ofxOpenNIUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxOpenNIUtils.h; sourceTree = "<group>"; };
-		01A1C64E163EF35D004FFED0 /* change_exec_paths.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = change_exec_paths.sh; sourceTree = "<group>"; };
 		01A1C64F163EF35D004FFED0 /* libnimCodecs.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libnimCodecs.dylib; sourceTree = "<group>"; };
 		01A1C650163EF35D004FFED0 /* libnimMockNodes.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libnimMockNodes.dylib; sourceTree = "<group>"; };
 		01A1C651163EF35D004FFED0 /* libnimRecorder.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libnimRecorder.dylib; sourceTree = "<group>"; };
@@ -1119,7 +1118,6 @@
 		01A1C64D163EF35D004FFED0 /* lib */ = {
 			isa = PBXGroup;
 			children = (
-				01A1C64E163EF35D004FFED0 /* change_exec_paths.sh */,
 				01A1C64F163EF35D004FFED0 /* libnimCodecs.dylib */,
 				01A1C650163EF35D004FFED0 /* libnimMockNodes.dylib */,
 				01A1C651163EF35D004FFED0 /* libnimRecorder.dylib */,
@@ -1411,7 +1409,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# openFrameworks install script\ncp -f ../../../libs/fmodex/lib/osx/libfmodex.dylib \"$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS/libfmodex.dylib\"\ninstall_name_tool -change ./libfmodex.dylib @executable_path/libfmodex.dylib \"$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS/$PRODUCT_NAME\"\n\nif [[ $USES_KINECT == YES ]] ; then\n\n#copy openni data\nmkdir $TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/Resources/openni\ncp -rf bin/data/openni/config \"$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/Resources/openni/config\"\n\n# copy openni libraries\necho \"\"\necho \"======================================\"\necho \"Copying openni libraries to bundle....\"\necho \"======================================\"\necho \"\"\ncd bin/data/openni/lib\n\nlibs=(*.dylib)\necho ${libs[@]}\n\nfor lib in *.dylib ; do\n\necho ${lib}\ncp -f ${lib} \"$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS/${lib}\"\necho cp -f ${lib} \"$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS/${lib}\"\n\ndone\n\n# change library-to-executable install names\necho \"\"\necho \"======================================\"\necho \"Changing openni library install names....\"\necho \"======================================\"\necho \"\"\ncd $TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS\n\nlines=`otool -L $PRODUCT_NAME`\necho ${lines}\n\nfor linked_lib in ${lines} ; do\n\nlibname=`basename ${linked_lib}`\n\ncheck_lib=`echo ${libs[@]} | grep -i ${libname}`\n\nif [ \"$check_lib\" != \"\" ] ; then\necho \"---------------------\"\necho \"$libname\"\ninstall_name_tool -change ${linked_lib} \"@executable_path/${libname}\" $PRODUCT_NAME\necho install_name_tool -change ${linked_lib} \"@executable_path/${libname}\" $PRODUCT_NAME\n\nfi\ndone\n\n# change library-to-library install names\necho \"\"\necho \"======================================\"\necho \"Changing inter-library install names....\"\necho \"======================================\"\necho \"\"\n\nfor openni_lib in ${libs[@]} ; do\n\necho \"---------------------\"\necho \"${openni_lib}\"\n\ninstall_name_tool -id \"@executable_path/${openni_lib}\" ${openni_lib}\necho install_name_tool -id \"@executable_path/${openni_lib}\" ${openni_lib}\n\nliblibs=`otool -L ${openni_lib}`\necho ${liblibs}\n\nfor liblib in ${liblibs[@]} ; do\n\nlibname=`basename ${liblib}`\n\n\ncheck_lib=`echo ${libs[@]} | grep -i ${libname}`\nif [ \"$check_lib\" != \"\" ] && [ \"$libname\" != \"$openni_lib\" ] ; then\n\ninstall_name_tool -change ${liblib} \"@executable_path/${libname}\" ${openni_lib}\necho install_name_tool -change ${liblib} \"@executable_path/${libname}\" ${openni_lib}\n\nfi\n\ndone\n\ndone\n\nfi\n";
+			shellScript = "# openFrameworks install script\ncp -f ../../../libs/fmodex/lib/osx/libfmodex.dylib \"$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS/libfmodex.dylib\"\ninstall_name_tool -change ./libfmodex.dylib @executable_path/libfmodex.dylib \"$TARGET_BUILD_DIR/$PRODUCT_NAME.app/Contents/MacOS/$PRODUCT_NAME\"";
 		};
 /* End PBXShellScriptBuildPhase section */
 
