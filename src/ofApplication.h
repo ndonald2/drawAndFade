@@ -88,6 +88,8 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
         float       elapsedPhase;
         bool        debugMode;
     
+    
+    
         // ----- animation options ------
     
         // FLAGS
@@ -97,6 +99,10 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
         bool        bTrailHands;
         bool        bDrawPoi;
         bool        bTrailPoi;
+    
+        // FREEZE FRAME
+        float           strobeIntervalMs;
+        float           strobeLastDrawTime;
     
         // CIRCULAR GRADIENT + BACKGROUND
         ofxNDHSBColor   bgColorHSB;
@@ -115,6 +121,7 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
         // USER OUTLINE
         ofxNDHSBColor   userOutlineColorHSB;
         float           userShapeScaleFactor;
+
     
         // POI
         ofxNDHSBColor   poiSpriteColorHSB;

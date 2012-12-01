@@ -82,7 +82,9 @@ void ofApplication::setup(){
     // USER OUTLINE
     userOutlineColorHSB = ofxNDHSBColor(0,0,255);
     userShapeScaleFactor = 1.1f;
-
+    strobeLastDrawTime = 0;
+    strobeIntervalMs = 0;
+    
     // POI
     poiMaxScaleFactor = 0.1f;
 
@@ -204,9 +206,11 @@ void ofApplication::setup(){
 //--------------------------------------------------------------
 void ofApplication::update(){
     
+    float elapsedTime = ofGetElapsedTimef();
+
     audioLowFreq = ofMap(audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity, 0.25f, 3.0f, 0.0f, 1.0f, true);
     audioHiPSF = ofMap(audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_HIGH)*audioSensitivity, 0.3f, 4.0f, 0.0f, 1.0f, true);
-    elapsedPhase = 2.0*M_PI*ofGetElapsedTimef();
+    elapsedPhase = 2.0*M_PI*elapsedTime;
 
 #ifdef USE_KINECT
     kinectOpenNI.update();
@@ -214,24 +218,37 @@ void ofApplication::update(){
     if(bDrawUserOutline) updateUserOutline();
  #endif
     
+    // don't draw if frame freeze is turned on
+    bool shouldDrawNew = true;
+    if (strobeIntervalMs > 1000.0f/60.0f){
+        
+        shouldDrawNew = (elapsedTime - strobeLastDrawTime >= strobeIntervalMs/1000.0f);
+        if (shouldDrawNew){
+            strobeLastDrawTime = elapsedTime;
+        }
+    }
+    
     // draw to FBOs
     glDisable(GL_DEPTH_TEST);
     
     beginTrails();
-    if (bDrawUserOutline && bTrailUserOutline) drawUserOutline();
-    if (bDrawHands && bTrailHands) drawHandSprites();
-    if (bDrawPoi && bTrailPoi) drawPoiSprites();
+    if (shouldDrawNew){
+        if (bDrawUserOutline && bTrailUserOutline) drawUserOutline();
+        if (bDrawHands && bTrailHands) drawHandSprites();
+        if (bDrawPoi && bTrailPoi) drawPoiSprites();
+    }
     endTrails();
     
     mainFbo.begin();
     ofClear(0,0,0,0);
     
-    if (bDrawUserOutline && !bTrailUserOutline) drawUserOutline();
+    if (bDrawUserOutline && !bTrailUserOutline && shouldDrawNew) drawUserOutline();
     
     drawTrails();
-    
-    if (bDrawHands && !bTrailHands) drawHandSprites();
-    if (bDrawPoi && !bTrailPoi) drawPoiSprites();
+    if (shouldDrawNew){
+        if (bDrawHands && !bTrailHands) drawHandSprites();
+        if (bDrawPoi && !bTrailPoi) drawPoiSprites();
+    }
 
     mainFbo.end();
 }
@@ -711,6 +728,9 @@ void ofApplication::newMidiMessage(ofxMidiMessage& msg)
             trailMinAlpha = ofMap((float)msg.value, 0, 127, 0.02f, 0.15f);
             break;
             
+        case 91:
+            strobeIntervalMs = ofMap((float)msg.value, 0, 127, 10.0f, 250.0f);
+            break;
             
         // Audio tuning
         case 120:
