@@ -1,27 +1,26 @@
 #pragma once
 
 #include "ofMain.h"
+#include "ofxMidi.h"
 #include "ofxOpenNI.h"
 #include "ofxHardwareDriver.h"
 #include "ofxOpenCv.h"
 #include "ofxAudioAnalyzer.h"
 #include "ofxHandPhysics.h"
+#include "ofxNDGraphicsUtils.h"
 
 // ================================
 //      Compile-time options
 // ================================
 
-// Comment out for no-kinect debug mode (most likely out-of-date)
-#define USE_KINECT
-
 // Uncomment to use user tracking instead of hand tracking.
-// Hand tracking is much faster/more accurate, but loses positions occasionally.
+// Hand tracking is faster and more accurate, but loses positions occasionally.
 #define USE_USER_TRACKING
 
-
 void ofApplicationSetAudioInputDeviceId(int deviceId);
+void ofApplicationSetMidiInputDeviceId(int deviceId);
 
-class ofApplication : public ofBaseApp{
+class ofApplication : public ofBaseApp, public ofxMidiListener {
 	public:
     
         ofApplication();
@@ -31,6 +30,7 @@ class ofApplication : public ofBaseApp{
 		void update();
 		void draw();
 		
+        // default events
 		void keyPressed(int key);
 		void keyReleased(int key);
 		void mouseMoved(int x, int y);
@@ -41,11 +41,14 @@ class ofApplication : public ofBaseApp{
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
     
+        // midi events
+        void newMidiMessage(ofxMidiMessage& msg);
+    
         // drawing
         void beginTrails();
         void endTrails();
     
-        void blurUserOutline();
+        void updateUserOutline();
     
         void drawTrails();
         void drawPoiSprites();
@@ -59,50 +62,66 @@ class ofApplication : public ofBaseApp{
         ofFbo           trailsFbo;
         ofFbo           userFbo;
     
-    
         ofShader        trailsShader;
         ofShader        gaussianBlurShader;
         ofShader        userMaskShader;
     
-        // renderer state
-        float   elapsedPhase;
-    
-        // blur parameters
-        ofPoint trailVelocity;
-        ofPoint trailScale;         // percent increase/decrease per second
-        ofPoint trailScaleAnchor;
+        // midi
+        ofxMidiIn       midiIn;
     
         // audio
-        ofxAudioAnalyzer audioAnalyzer;
+        ofxAudioAnalyzer            audioAnalyzer;
+        float                       audioSensitivity;
+        float                       audioLowFreq;
+        float                       audioMidFreq;
+        float                       audioHiFreq;
+        float                       audioHiPSF;
     
         // kinect
+#ifdef USE_KINECT
         ofxOpenNI                   kinectOpenNI;
         ofxHardwareDriver           kinectDriver;
         ofxHandPhysicsManager *     handPhysics;
         int                         kinectAngle;
-        float                       depthThresh;
-    
-        // animation options
+#endif
+        // renderer state
+        float       elapsedPhase;
         bool        debugMode;
-        bool        showTrails;
     
+        // ----- animation options ------
+    
+        // FLAGS
+        bool        bDrawUserOutline;
+        bool        bTrailUserOutline;
+        bool        bDrawHands;
+        bool        bTrailHands;
+        bool        bDrawPoi;
+        bool        bTrailPoi;
+    
+        // CIRCULAR GRADIENT + BACKGROUND
+        ofxNDHSBColor   bgColorHSB;
+        ofxNDHSBColor   gradCircleColorHSB;
+        ofPoint         gradCircleCenter;
+        float           gradCircleRadius;
+        
+        // TRAILS
+        ofPoint     trailVelocity;
+        ofPoint     trailScale;         // percent increase/decrease per second
+        ofPoint     trailScaleAnchor;
         float       trailColorDecay;
         float       trailAlphaDecay;
         float       trailMinAlpha;
     
-        float       poiMaxScaleFactor;
-        float       userShapeScaleFactor;
+        // USER OUTLINE
+        ofxNDHSBColor   userOutlineColorHSB;
+        float           userShapeScaleFactor;
     
-        // colors
-        ofColor     handsColor;
-        ofColor     poiSpriteColor;
-        ofColor     bgColor;
-        ofColor     bgHighlightColor;
+        // POI
+        ofxNDHSBColor   poiSpriteColorHSB;
+        float           poiMaxScaleFactor;
     
-#ifdef USE_MOUSE
-    ofPoint lastEndPoint;
-    ofPoint lastMousePoint;
-    float   mouseVelocity;
-#endif
+        // HANDS
+        ofxNDHSBColor   handsColorHSB;
+
     
 };

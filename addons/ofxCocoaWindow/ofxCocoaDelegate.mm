@@ -363,10 +363,20 @@
 
 - (NSRect) getViewFrame
 {
+    NSAutoreleasePool *pool = nil;
+    BOOL mainThread = [NSThread isMainThread];
+    if (!mainThread)
+        pool = [[NSAutoreleasePool alloc] init];
+    
     if( windowMode == OF_WINDOW )
         return [ self.openGLView frame ];
     else if( windowMode == OF_FULLSCREEN )
         return [ self.fullScreenView frame ];
+    
+    if (!mainThread){
+        [pool drain];
+        [pool release];
+    }
 }
 
 - (NSRect) getWindowFrame

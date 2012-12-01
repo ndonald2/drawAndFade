@@ -13,12 +13,18 @@
     NSPopUpButton *_resBox;
     NSButton *_fullscreenCheck;
     NSPopUpButton *_audioInputBox;
+    NSPopUpButton *_midiInputBox;
+    NSButton *_startButton;
+    
     NSMutableArray *_audioDevices;
 }
 
 @property (retain, nonatomic) IBOutlet NSPopUpButton *resBox;
 @property (retain, nonatomic) IBOutlet NSButton *fullscreenCheck;
 @property (retain, nonatomic) IBOutlet NSPopUpButton *audioInputBox;
+@property (retain, nonatomic) IBOutlet NSPopUpButton *midiInputBox;
+@property (retain, nonatomic) IBOutlet NSButton *startButton;
+@property (retain, nonatomic) NSMutableArray *audioDevices;
 
 - (IBAction)startPressed:(id)sender;
 
