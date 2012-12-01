@@ -75,7 +75,6 @@ void ofApplication::setup(){
     trailColorDecay = 0.975f;
     trailAlphaDecay = 0.98f;
     trailMinAlpha = 0.03f;
-    
     trailVelocity = ofPoint(0.0f,80.0f);
     trailScale = ofPoint(-0.1f, -0.1f);
     trailScaleAnchor = ofPoint(0.5f, 0.5f);
@@ -247,7 +246,7 @@ void ofApplication::draw(){
     ofBackground(bgColorHSB.getOfColor());
     ofColor scaledGradCircleColor = gradCircleColorHSB.getOfColor();
     scaledGradCircleColor.a *= audioLowFreq;
-    ofColor clearGCColor = bgColorHSB.getOfColor();
+    ofColor clearGCColor = scaledGradCircleColor;
     clearGCColor.a = 0;
     ofPushMatrix();
     ofTranslate(gradCircleCenter);
@@ -640,7 +639,7 @@ void ofApplication::newMidiMessage(ofxMidiMessage& msg)
         // Colors done this way because ofColor inherently resets Hue/Sat when reaching full black/white
             
         case 10:
-            bgColorHSB.h = ofMap((float)msg.value, 0, 127, 0, 255);
+            bgColorHSB.h = ofMap((float)msg.value, 0, 127, 0, 254);
             break;
             
         case 11:
@@ -652,7 +651,7 @@ void ofApplication::newMidiMessage(ofxMidiMessage& msg)
             break;
             
         case 13:
-            gradCircleColorHSB.h = ofMap((float)msg.value, 0, 127, 0, 255);
+            gradCircleColorHSB.h = ofMap((float)msg.value, 0, 127, 0, 254);
             break;
             
         case 14:
