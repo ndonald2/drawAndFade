@@ -14,6 +14,7 @@
     NSButton *_fullscreenCheck;
     NSPopUpButton *_audioInputBox;
     NSPopUpButton *_midiInputBox;
+    NSTextField *_oscListenPortField;
     NSButton *_startButton;
     
     NSMutableArray *_audioDevices;
@@ -23,6 +24,7 @@
 @property (retain, nonatomic) IBOutlet NSButton *fullscreenCheck;
 @property (retain, nonatomic) IBOutlet NSPopUpButton *audioInputBox;
 @property (retain, nonatomic) IBOutlet NSPopUpButton *midiInputBox;
+@property (retain, nonatomic) IBOutlet NSTextField *oscListenPortField;
 @property (retain, nonatomic) IBOutlet NSButton *startButton;
 @property (retain, nonatomic) NSMutableArray *audioDevices;
 

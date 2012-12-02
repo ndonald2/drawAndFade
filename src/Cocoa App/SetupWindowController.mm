@@ -32,6 +32,7 @@
 @synthesize fullscreenCheck = _fullscreenCheck;
 @synthesize audioInputBox = _audioInputBox;
 @synthesize midiInputBox = _midiInputBox;
+@synthesize oscListenPortField = _oscListenPortField;
 @synthesize startButton = _startButton;
 @synthesize audioDevices = _audioDevices;
 
@@ -160,8 +161,11 @@
     NSString *audioDeviceName = [audioDevice objectForKey:kAudioDeviceName];
     int deviceIndex = [[audioDevice objectForKey:kAudioDeviceIndex] intValue];
     
+    int oscListenPort = [[self.oscListenPortField stringValue] intValue];
+    
     ofApplicationSetAudioInputDeviceId(deviceIndex);
     ofApplicationSetMidiInputDeviceId(self.midiInputBox.indexOfSelectedItem);
+    ofApplicationSetOSCListenPort(oscListenPort);
     
     if (resComponents.count != 2){
         // error message

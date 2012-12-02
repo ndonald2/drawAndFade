@@ -2,6 +2,7 @@
 
 #include "ofMain.h"
 #include "ofxMidi.h"
+#include "ofxOsc.h"
 #include "ofxOpenNI.h"
 #include "ofxHardwareDriver.h"
 #include "ofxOpenCv.h"
@@ -17,8 +18,9 @@
 // Hand tracking is faster and more accurate, but loses positions occasionally.
 #define USE_USER_TRACKING
 
-void ofApplicationSetAudioInputDeviceId(int deviceId);
-void ofApplicationSetMidiInputDeviceId(int deviceId);
+extern void ofApplicationSetAudioInputDeviceId(int deviceId);
+extern void ofApplicationSetMidiInputDeviceId(int deviceId);
+extern void ofApplicationSetOSCListenPort(int listenPort);
 
 class ofApplication : public ofBaseApp, public ofxMidiListener {
 	public:
@@ -39,24 +41,28 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
 		void mouseReleased(int x, int y, int button);
 		void windowResized(int w, int h);
 		void dragEvent(ofDragInfo dragInfo);
-		void gotMessage(ofMessage msg);
-    
+        void gotMessage(ofMessage msg);
+        
         // midi events
         void newMidiMessage(ofxMidiMessage& msg);
     
+    
+    private:
+
+        // osc events
+        void processOscMessages();
+        
         // drawing
         void beginTrails();
         void endTrails();
-    
+        
         void updateUserOutline();
-    
+        
         void drawTrails();
         void drawPoiSprites();
         void drawHandSprites();
         void drawUserOutline();
     
-    private:
-        
         // openGL
         ofFbo           mainFbo;
         ofFbo           trailsFbo;
@@ -68,6 +74,9 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
     
         // midi
         ofxMidiIn       midiIn;
+    
+        // osc
+        ofxOscReceiver  oscIn;
     
         // audio
         ofxAudioAnalyzer            audioAnalyzer;
@@ -101,19 +110,17 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
         bool        bTrailPoi;
     
         // FREEZE FRAME
-        float           strobeIntervalMs;
-        float           strobeLastDrawTime;
+        float       strobeIntervalMs;
+        float       strobeLastDrawTime;
     
         // CIRCULAR GRADIENT + BACKGROUND
-        ofxNDHSBColor   bgColorHSB;
-        ofxNDHSBColor   gradCircleColorHSB;
-        ofPoint         gradCircleCenter;
-        float           gradCircleRadius;
-        
+        float       bgBrightnessFade;
+        float       bgSpotRadius;
+    
         // TRAILS
         ofPoint     trailVelocity;
-        ofPoint     trailScale;         // percent increase/decrease per second
-        ofPoint     trailScaleAnchor;
+        ofPoint     trailAnchor;
+        float       trailZoom;         // percent increase/decrease per second
         float       trailColorDecay;
         float       trailAlphaDecay;
         float       trailMinAlpha;
