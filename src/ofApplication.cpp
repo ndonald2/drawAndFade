@@ -1,4 +1,5 @@
 #include "ofApplication.h"
+#include <stdlib.h>
 
 #define POI_MIN_SCALE_FACTOR 0.01
 
@@ -8,6 +9,7 @@
 
 static int s_inputAudioDeviceId = 0;
 static int s_inputMidiDeviceId = 0;
+static int s_oscListenPort = 9010;
 
 void ofApplicationSetAudioInputDeviceId(int deviceId){
     s_inputAudioDeviceId = deviceId;
@@ -17,11 +19,15 @@ void ofApplicationSetMidiInputDeviceId(int deviceId){
     s_inputMidiDeviceId = deviceId;
 }
 
+void ofApplicationSetOSCListenPort(int listenPort){
+    s_oscListenPort = listenPort;
+}
+
 //--------------------------------------------------------------
 
-float midiToOnePoleTc(float midiValue, float minMs, float maxMs)
+float toOnePoleTC(float value, float minMs, float maxMs)
 {
-    float midiNorm = ofMap(midiValue, 0, 127, 0.0f, 1.0f);
+    float midiNorm = ofMap(value, 0.0f, 1.0f, 0.0f, 1.0f, true);
     float maxPow = log10f(maxMs/minMs);
     return 1.0f - (1.0f/(ofGetFrameRate()*minMs*powf(10.0f,midiNorm*maxPow)*0.001f));
 }   
@@ -66,18 +72,15 @@ void ofApplication::setup(){
     bTrailPoi = false;
 
     // CIRCULAR GRADIENT + BACKGROUND
-    bgColorHSB = ofxNDHSBColor(0,0,255);
-    gradCircleColorHSB = ofxNDHSBColor(0,0,255,0);
-    gradCircleCenter = ofGetWindowSize()/2.0f;
-    gradCircleRadius = 1.0f;
+    bgBrightnessFade = 0.0f;
+    bgSpotRadius = 1.0f;
 
     // TRAILS
-    trailColorDecay = 0.975f;
+    trailColorDecay = 0.975f; 
     trailAlphaDecay = 0.98f;
     trailMinAlpha = 0.03f;
     trailVelocity = ofPoint(0.0f,80.0f);
-    trailScale = ofPoint(-0.1f, -0.1f);
-    trailScaleAnchor = ofPoint(0.5f, 0.5f);
+    trailZoom = -0.1f;
 
     // USER OUTLINE
     userOutlineColorHSB = ofxNDHSBColor(0,0,255);
@@ -87,6 +90,7 @@ void ofApplication::setup(){
     
     // POI
     poiMaxScaleFactor = 0.1f;
+    poiSpriteColorHSB = ofxNDHSBColor(0,255,255);
 
     // HANDS    
     handsColorHSB = ofxNDHSBColor(0,0,200);
@@ -134,6 +138,9 @@ void ofApplication::setup(){
     midiIn.setVerbose(false);
     midiIn.openPort(s_inputMidiDeviceId);
     midiIn.addListener(this);
+    
+    // osc setup
+    oscIn.setup(s_oscListenPort);
     
     // audio setup
     audioSensitivity = 1.0f;
@@ -208,9 +215,12 @@ void ofApplication::update(){
     
     float elapsedTime = ofGetElapsedTimef();
 
-    audioLowFreq = ofMap(audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity, 0.25f, 3.0f, 0.0f, 1.0f, true);
+    audioLowEnergy = ofMap(audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity, 0.25f, 3.0f, 0.0f, 1.0f, true);
+    audioMidEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_MID)*audioSensitivity;
     audioHiPSF = ofMap(audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_HIGH)*audioSensitivity, 0.3f, 4.0f, 0.0f, 1.0f, true);
     elapsedPhase = 2.0*M_PI*elapsedTime;
+    
+    processOscMessages();
 
 #ifdef USE_KINECT
     kinectOpenNI.update();
@@ -236,6 +246,7 @@ void ofApplication::update(){
         if (bDrawUserOutline && bTrailUserOutline) drawUserOutline();
         if (bDrawHands && bTrailHands) drawHandSprites();
         if (bDrawPoi && bTrailPoi) drawPoiSprites();
+        drawTouches();
     }
     endTrails();
     
@@ -260,18 +271,17 @@ void ofApplication::draw(){
     ofSetColor(255, 255, 255);
     ofEnableAlphaBlending();
     
-    ofBackground(bgColorHSB.getOfColor());
-    ofColor scaledGradCircleColor = gradCircleColorHSB.getOfColor();
-    scaledGradCircleColor.a *= audioLowFreq;
+    ofBackground(ofFloatColor(bgBrightnessFade));
+    ofFloatColor scaledGradCircleColor = ofFloatColor(1.0f - bgBrightnessFade);
+    scaledGradCircleColor.a *= audioLowEnergy;
     ofColor clearGCColor = scaledGradCircleColor;
     clearGCColor.a = 0;
     ofPushMatrix();
-    ofTranslate(gradCircleCenter);
-    ofScale(gradCircleRadius, gradCircleRadius);
-    ofxNDCircularGradient(scaledGradCircleColor, clearGCColor);
+    ofTranslate(ofGetWindowSize()/2.0f);
+    ofxNDCircularGradient(bgSpotRadius, scaledGradCircleColor, clearGCColor);
     ofPopMatrix();
     
-    // Draw the main FBO (TODO: inversion effects maybe?)
+    // Draw the main FBO
     mainFbo.draw(0, 0);
 
     if (debugMode){
@@ -321,10 +331,10 @@ void ofApplication::beginTrails()
 
     ofTranslate(trailOffset);
     
-    ofPoint scaleOffset = ofPoint(1.0f,1.0f) + (trailScale*ofGetLastFrameTime());
-    
+    float zoomInc = trailZoom * ofGetLastFrameTime();
+    ofPoint scaleOffset = ofPoint(1.0f+zoomInc ,1.0f + zoomInc);
     ofScale(scaleOffset.x, scaleOffset.y);
-    ofTranslate(-(trailScaleAnchor*ofPoint(trailsFbo.getWidth(),trailsFbo.getHeight())*(scaleOffset - ofPoint(1.0,1.0))));
+    ofTranslate(-0.5f*ofPoint(trailsFbo.getWidth(),trailsFbo.getHeight())*(scaleOffset - ofPoint(1.0,1.0)));
     
     trailsShader.begin();
     trailsShader.setUniformTexture("texSampler", fadingTex, 1);
@@ -395,7 +405,7 @@ void ofApplication::updateUserOutline()
     // ===== blur =====
     gaussianBlurShader.begin();
     
-    float blurAmt = 4.0f; //ofMap(audioLowFreq, 0.0f, 1.0f, 0.01f, 15.0f, true);
+    float blurAmt = 4.0f; //ofMap(audioLowEnergy, 0.0f, 1.0f, 0.01f, 15.0f, true);
     
     gaussianBlurShader.setUniform1f("sigma", blurAmt);
     gaussianBlurShader.setUniform1f("nBlurPixels", 15.0f);
@@ -417,9 +427,6 @@ void ofApplication::updateUserOutline()
 
 void ofApplication::drawPoiSprites()
 {
-    float hue = ((cosf(0.05f*elapsedPhase)+1.0f)/2.0f)*255.0f;
-    poiSpriteColorHSB = ofxNDHSBColor(hue, 255.0f, 255.0f);
-    
     float shapeRadius = ofMap(audioHiPSF, 0.0, 1.0, POI_MIN_SCALE_FACTOR*ofGetWidth(), poiMaxScaleFactor*ofGetWidth(), true);
     
 #ifdef USE_KINECT
@@ -444,7 +451,6 @@ void ofApplication::drawPoiSprites()
         
         ofSetColor(poiSpriteColorHSB.getOfColor());
         ofFill();
-        
         
         // --------- fake "waveform" drawing algorithm -------------
         ofVec2f pDiff = hp - hp1;
@@ -485,8 +491,7 @@ void ofApplication::drawPoiSprites()
 void ofApplication::drawHandSprites()
 {
     ofSetColor(handsColorHSB.getOfColor());
-    float midEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_MID)*audioSensitivity;
-    float radius = ofMap(midEnergy, 0.1f, 5.0f, 4.0f, HANDS_MAX_SCALE_FACTOR*ofGetWidth(), false);
+    float radius = ofMap(audioMidEnergy, 0.1f, 4.0f, 4.0f, HANDS_MAX_SCALE_FACTOR*ofGetWidth(), false);
     
 #ifdef USE_KINECT
     for (int i=0; i<handPhysics->getNumTrackedHands(); i++)
@@ -523,7 +528,7 @@ void ofApplication::drawUserOutline()
 {
 #ifdef USE_KINECT
     ofEnableBlendMode(OF_BLENDMODE_ALPHA);
-    float scale = debugMode ? 1.0 : ofMap(audioLowFreq, 0.0f, 1.0f, 1.0f, userShapeScaleFactor, true);
+    float scale = debugMode ? 1.0 : ofMap(audioLowEnergy, 0.0f, 1.0f, 1.0f, userShapeScaleFactor, true);
     ofSetColor(userOutlineColorHSB.getOfColor());
     ofPushMatrix();
     ofScale(scale, scale);
@@ -533,8 +538,156 @@ void ofApplication::drawUserOutline()
 #endif
 }
 
-#pragma mark - Inputs
+void ofApplication::drawTouches()
+{
+    int touchCount = touchMap.size();
+    if (touchCount > 0){
+        touchLine.clear();
+        
+        if (touchCount <= 3){
+            if (touchCount == 1){
+                ofVec2f point = (*touchMap.begin()).second;
+                ofCircle(point, 2.0f);
+            }
+            else{
+                map<int,ofVec2f>::iterator it = touchMap.begin();
+                while (it != touchMap.end()){
+                    touchLine.addVertex((*it++).second*ofGetWindowSize());
+                }
+                if (touchCount == 3) touchLine.close();
+            }
+        }
+        
+        ofSetLineWidth(3.0f);
+        ofSetColor(ofFloatColor(1.0f - bgBrightnessFade));
+        touchLine.draw();
+    }
+}
 
+#pragma mark - Inputs
+    
+void ofApplication::processOscMessages()
+{
+    while (oscIn.hasWaitingMessages())
+    {
+        ofxOscMessage m;
+        oscIn.getNextMessage(&m);
+        
+        string a = m.getAddress();
+        
+        // ------ FLAGS/SWITCHES -------
+        if (a == "/oF/drawUser/")
+        {
+            bDrawUserOutline = m.getArgAsFloat(0) != 0.0f;
+        }
+        else if (a == "/of/drawUserTrails")
+        {
+            bTrailUserOutline = m.getArgAsFloat(0) != 0.0f;
+        }
+        else if (a == "/oF/drawPoi")
+        {
+            bDrawPoi = m.getArgAsFloat(0) != 0.0f;
+        }
+        else if (a == "/oF/drawPoiTrails")
+        {
+            bTrailPoi = m.getArgAsFloat(0) != 0.0f;
+        }
+        
+        // ------- BACKGROUND ---------
+        else if (a == "/oF/bgBrightFade")
+        {
+            bgBrightnessFade = m.getArgAsFloat(0);
+        }
+        else if (a == "/oF/bgSpotSize")
+        {
+            bgSpotRadius = ofMap(m.getArgAsFloat(0), 0.0f, 1.0f, 1.0f, ofGetHeight(), true);
+        }
+        
+        // ------- USER OUTLINE -------
+//        else if (a == "/oF/")
+//        {
+//            
+//        }
+        
+        // -------- POI --------
+        else if (a == "/oF/poiHue")
+        {
+            poiSpriteColorHSB.h = ofMap(m.getArgAsFloat(0), 0.0f, 1.0f, 0.0f, 254.0f, true);
+        }
+        
+        // ------- TOUCH PAD ------
+        else if (a.find("/oF/multiPad/") != string::npos)
+        {
+            handleTouchPadMessage(m);
+        }
+        
+        // ------- EFFECTS ------
+        
+        else if (a == "/oF/strobeRate")
+        {
+            strobeIntervalMs = ofMap(m.getArgAsFloat(0), 0.0f, 1.0f, 10.0f, 250.0f, true);
+        }
+        else if (a == "/oF/trailVelocity")
+        {
+            // swap X and Y from touchOSC in landscape
+            trailVelocity.set(ofVec3f(m.getArgAsFloat(1),m.getArgAsFloat(0))*300.0f);
+        }
+        else if (a == "/oF/trailZoom")
+        {
+            float oscv = m.getArgAsFloat(0);
+            trailZoom = powf(fabs(oscv), 3.0f) * (oscv >= 0.0f ? 1.0f : -1.0f) * 10.0f;
+        }
+        else if (a == "/oF/trailAlphaFade")
+        {
+            trailAlphaDecay = toOnePoleTC(m.getArgAsFloat(0), 10, 10000);
+        }
+        else if (a == "/oF/trailColorFade")
+        {
+            trailColorDecay = toOnePoleTC(m.getArgAsFloat(0), 10, 10000);
+        }
+        else if (a == "/oF/trailMinAlpha")
+        {
+            trailMinAlpha = ofMap((float)m.getArgAsFloat(0), 0.0f, 1.0f, 0.02f, 0.15f);
+        }
+        
+        // ------- AUDIO SENSITIVITY ------
+        else if (a == "/oF/audioSensitivity")
+        {
+            audioSensitivity = ofMap(m.getArgAsFloat(0), 0.0f, 1.0f, 0.5f, 2.0f, true);
+        }
+    }
+}
+
+void ofApplication::handleTouchPadMessage(ofxOscMessage &m)
+{
+    string a = m.getAddress();
+    int a_len = a.length();
+    int r_len = string("/oF/multiPad/").length();
+    if (a_len > r_len)
+    {
+        string mRouteStr = a.substr(r_len, a_len-r_len);
+        int touchIndex = atoi(&mRouteStr.at(0));
+        
+        int delim_pos = mRouteStr.find("/");
+        if (delim_pos != string::npos)
+        {
+            // z-message
+            if (mRouteStr.at(mRouteStr.length()-1) == 'z')
+            {
+                bool on = m.getArgAsFloat(0) != 0.0;
+                if (!on){
+                    touchMap.erase(touchIndex);
+                }
+            }
+        }
+        else
+        {
+            // x-y are swapped in touchOSC landscape
+            touchMap[touchIndex] = ofVec2f(m.getArgAsFloat(1), m.getArgAsFloat(0));
+        }
+    }
+}
+    
 //--------------------------------------------------------------
 void ofApplication::keyPressed(int key){
     
@@ -654,47 +807,9 @@ void ofApplication::newMidiMessage(ofxMidiMessage& msg)
             
         // ----- BG + GRADIENT -----
         // Colors done this way because ofColor inherently resets Hue/Sat when reaching full black/white
-            
-        case 10:
-            bgColorHSB.h = ofMap((float)msg.value, 0, 127, 0, 254);
-            break;
-            
-        case 11:
-            bgColorHSB.s = ofMap((float)msg.value, 0, 127, 0, 255);
-            break;
-            
-        case 12:
-            bgColorHSB.b = ofMap((float)msg.value, 0, 127, 0, 255);
-            break;
-            
-        case 13:
-            gradCircleColorHSB.h = ofMap((float)msg.value, 0, 127, 0, 254);
-            break;
-            
-        case 14:
-            gradCircleColorHSB.s = ofMap((float)msg.value, 0, 127, 0, 255);
-            break;
-            
-        case 15:
-            gradCircleColorHSB.b = ofMap((float)msg.value, 0, 127, 0, 255);
-            break;
-            
-        case 16:
-            gradCircleColorHSB.a = ofMap((float)msg.value, 0, 127, 0, 255);
-            break;
-            
-        case 17:
-            gradCircleCenter.x = ofMap((float)msg.value, 0, 127, 0, w);
-            break;
-            
-        case 18:
-            gradCircleCenter.y = ofMap((float)msg.value, 0, 127, 0, h);
-            break;
-            
-        case 19:
-            gradCircleRadius = ofMap((float)msg.value, 0, 127, 1, h);
-            break;
-            
+          
+        // TODO After changing draw routine
+
         // ----- TRAILS -----
         case 30:
             trailVelocity.x = ofMap((float)msg.value, 0, 127, -300.0f, 300.0f);
@@ -704,24 +819,16 @@ void ofApplication::newMidiMessage(ofxMidiMessage& msg)
             trailVelocity.y = ofMap((float)msg.value, 0, 127, -300.0f, 300.0f);
             break;
             
-        case 32:
-            trailScaleAnchor.x = ofMap((float)msg.value, 0, 127, 0.0f, 1.0f);
-            break;
-            
-        case 33:
-            trailScaleAnchor.y = ofMap((float)msg.value, 0, 127, 0.0f, 1.0f);
-            break;
-            
         case 34:
-            trailScale = ofPoint(1,1)*ofMap((float)msg.value, 0, 127, -0.5f, 0.5f);
+            trailZoom = ofMap((float)msg.value, 0, 127, -0.5f, 0.5f);
             break;
             
         case 35:
-            trailAlphaDecay = midiToOnePoleTc((float)msg.value, 10, 10000);
+            trailAlphaDecay = toOnePoleTC((float)msg.value/127.0f, 10, 10000);
             break;
             
         case 36:
-            trailColorDecay = midiToOnePoleTc((float)msg.value, 10, 10000);
+            trailColorDecay = toOnePoleTC((float)msg.value/127.0f, 10, 10000);
             break;
             
         case 37:
