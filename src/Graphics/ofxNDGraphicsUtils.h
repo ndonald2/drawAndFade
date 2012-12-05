@@ -30,4 +30,4 @@ extern void ofxNDBillboardRect(int x, int y, int w, int h, int tw, int th);
 
 
 // Circular gradient
-extern void ofxNDCircularGradient(const ofColor & start, const ofColor & end);
+extern void ofxNDCircularGradient(float radius, const ofColor & start, const ofColor & end);

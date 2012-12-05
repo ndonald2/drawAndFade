@@ -2,12 +2,14 @@
 
 #include "ofMain.h"
 #include "ofxMidi.h"
+#include "ofxOsc.h"
 #include "ofxOpenNI.h"
 #include "ofxHardwareDriver.h"
 #include "ofxOpenCv.h"
 #include "ofxAudioAnalyzer.h"
 #include "ofxHandPhysics.h"
 #include "ofxNDGraphicsUtils.h"
+#include <map>
 
 // ================================
 //      Compile-time options
@@ -17,8 +19,9 @@
 // Hand tracking is faster and more accurate, but loses positions occasionally.
 #define USE_USER_TRACKING
 
-void ofApplicationSetAudioInputDeviceId(int deviceId);
-void ofApplicationSetMidiInputDeviceId(int deviceId);
+extern void ofApplicationSetAudioInputDeviceId(int deviceId);
+extern void ofApplicationSetMidiInputDeviceId(int deviceId);
+extern void ofApplicationSetOSCListenPort(int listenPort);
 
 class ofApplication : public ofBaseApp, public ofxMidiListener {
 	public:
@@ -39,24 +42,30 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
 		void mouseReleased(int x, int y, int button);
 		void windowResized(int w, int h);
 		void dragEvent(ofDragInfo dragInfo);
-		void gotMessage(ofMessage msg);
-    
+        void gotMessage(ofMessage msg);
+        
         // midi events
         void newMidiMessage(ofxMidiMessage& msg);
+    
+    
+    private:
+
+        // osc events
+        void processOscMessages();
+        void handleTouchPadMessage(ofxOscMessage &m);
     
         // drawing
         void beginTrails();
         void endTrails();
-    
+        
         void updateUserOutline();
-    
+        
         void drawTrails();
         void drawPoiSprites();
         void drawHandSprites();
         void drawUserOutline();
+        void drawTouches();
     
-    private:
-        
         // openGL
         ofFbo           mainFbo;
         ofFbo           trailsFbo;
@@ -66,15 +75,21 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
         ofShader        gaussianBlurShader;
         ofShader        userMaskShader;
     
+        ofPolyline          touchLine;
+        map<int,ofVec2f>    touchMap;
+    
         // midi
         ofxMidiIn       midiIn;
+    
+        // osc
+        ofxOscReceiver  oscIn;
     
         // audio
         ofxAudioAnalyzer            audioAnalyzer;
         float                       audioSensitivity;
-        float                       audioLowFreq;
-        float                       audioMidFreq;
-        float                       audioHiFreq;
+        float                       audioLowEnergy;
+        float                       audioMidEnergy;
+        float                       audioHiEnergy;
         float                       audioHiPSF;
     
         // kinect
@@ -101,19 +116,17 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
         bool        bTrailPoi;
     
         // FREEZE FRAME
-        float           strobeIntervalMs;
-        float           strobeLastDrawTime;
+        float       strobeIntervalMs;
+        float       strobeLastDrawTime;
     
         // CIRCULAR GRADIENT + BACKGROUND
-        ofxNDHSBColor   bgColorHSB;
-        ofxNDHSBColor   gradCircleColorHSB;
-        ofPoint         gradCircleCenter;
-        float           gradCircleRadius;
-        
+        float       bgBrightnessFade;
+        float       bgSpotRadius;
+    
         // TRAILS
         ofPoint     trailVelocity;
-        ofPoint     trailScale;         // percent increase/decrease per second
-        ofPoint     trailScaleAnchor;
+        ofPoint     trailAnchor;
+        float       trailZoom;         // percent increase/decrease per second
         float       trailColorDecay;
         float       trailAlphaDecay;
         float       trailMinAlpha;
@@ -121,7 +134,6 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
         // USER OUTLINE
         ofxNDHSBColor   userOutlineColorHSB;
         float           userShapeScaleFactor;
-
     
         // POI
         ofxNDHSBColor   poiSpriteColorHSB;

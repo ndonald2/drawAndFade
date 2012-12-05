@@ -10,7 +10,7 @@
 
 #include "ofMain.h"
 #include "ofxOpenNI.h"
-#include <map.h>
+#include <map>
 
 #define MAX_POINT_HISTORY   10
 

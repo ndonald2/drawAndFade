@@ -23,8 +23,6 @@ ofColor ofxNDHSBColor::getOfColor()
     return returnColor;
 }
 
-static ofMesh _nd_cg_mesh;
-
 void ofxNDBillboardRect(int x, int y, int w, int h, int tw, int th)
 {
     GLfloat tex_coords[] = {
@@ -48,22 +46,23 @@ void ofxNDBillboardRect(int x, int y, int w, int h, int tw, int th)
 	glDisableClientState( GL_TEXTURE_COORD_ARRAY );
 }
 
-void ofxNDCircularGradient(const ofColor & start, const ofColor & end)
+void ofxNDCircularGradient(float radius, const ofColor & start, const ofColor & end)
 {
     int n = 32; // circular gradient resolution
-    
-    if (_nd_cg_mesh.getNumVertices() == 0){
-        _nd_cg_mesh.setMode(OF_PRIMITIVE_TRIANGLE_FAN);
-        ofVec2f center(0,0);
-        _nd_cg_mesh.addVertex(center);
+    static ofMesh _nd_cg_mesh;
 
-        float angleBisector = TWO_PI / (n * 2);
-        float smallRadius = 1.0f;
-        float bigRadius = smallRadius / cos(angleBisector);
-        for(int i = 0; i <= n; i++) {
-            float theta = i * TWO_PI / n;
-            _nd_cg_mesh.addVertex(center + ofVec2f(sin(theta), cos(theta)) * bigRadius);
-        }
+    _nd_cg_mesh.clear();
+    _nd_cg_mesh.setMode(OF_PRIMITIVE_TRIANGLE_FAN);
+    
+    ofVec2f center(0,0);
+    _nd_cg_mesh.addVertex(center);
+
+    float angleBisector = TWO_PI / (n * 2);
+    float smallRadius = radius;
+    float bigRadius = smallRadius / cos(angleBisector);
+    for(int i = 0; i <= n; i++) {
+        float theta = i * TWO_PI / n;
+        _nd_cg_mesh.addVertex(center + ofVec2f(sin(theta), cos(theta)) * bigRadius);
     }
     
     _nd_cg_mesh.clearColors();
