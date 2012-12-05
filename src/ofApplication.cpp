@@ -1,4 +1,5 @@
 #include "ofApplication.h"
+#include <stdlib.h>
 
 #define POI_MIN_SCALE_FACTOR 0.01
 
@@ -214,7 +215,8 @@ void ofApplication::update(){
     
     float elapsedTime = ofGetElapsedTimef();
 
-    audioLowFreq = ofMap(audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity, 0.25f, 3.0f, 0.0f, 1.0f, true);
+    audioLowEnergy = ofMap(audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity, 0.25f, 3.0f, 0.0f, 1.0f, true);
+    audioMidEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_MID)*audioSensitivity;
     audioHiPSF = ofMap(audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_HIGH)*audioSensitivity, 0.3f, 4.0f, 0.0f, 1.0f, true);
     elapsedPhase = 2.0*M_PI*elapsedTime;
     
@@ -244,6 +246,7 @@ void ofApplication::update(){
         if (bDrawUserOutline && bTrailUserOutline) drawUserOutline();
         if (bDrawHands && bTrailHands) drawHandSprites();
         if (bDrawPoi && bTrailPoi) drawPoiSprites();
+        drawTouches();
     }
     endTrails();
     
@@ -270,7 +273,7 @@ void ofApplication::draw(){
     
     ofBackground(ofFloatColor(bgBrightnessFade));
     ofFloatColor scaledGradCircleColor = ofFloatColor(1.0f - bgBrightnessFade);
-    scaledGradCircleColor.a *= audioLowFreq;
+    scaledGradCircleColor.a *= audioLowEnergy;
     ofColor clearGCColor = scaledGradCircleColor;
     clearGCColor.a = 0;
     ofPushMatrix();
@@ -278,7 +281,7 @@ void ofApplication::draw(){
     ofxNDCircularGradient(bgSpotRadius, scaledGradCircleColor, clearGCColor);
     ofPopMatrix();
     
-    // Draw the main FBO (TODO: inversion effects maybe?)
+    // Draw the main FBO
     mainFbo.draw(0, 0);
 
     if (debugMode){
@@ -402,7 +405,7 @@ void ofApplication::updateUserOutline()
     // ===== blur =====
     gaussianBlurShader.begin();
     
-    float blurAmt = 4.0f; //ofMap(audioLowFreq, 0.0f, 1.0f, 0.01f, 15.0f, true);
+    float blurAmt = 4.0f; //ofMap(audioLowEnergy, 0.0f, 1.0f, 0.01f, 15.0f, true);
     
     gaussianBlurShader.setUniform1f("sigma", blurAmt);
     gaussianBlurShader.setUniform1f("nBlurPixels", 15.0f);
@@ -488,8 +491,7 @@ void ofApplication::drawPoiSprites()
 void ofApplication::drawHandSprites()
 {
     ofSetColor(handsColorHSB.getOfColor());
-    float midEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_MID)*audioSensitivity;
-    float radius = ofMap(midEnergy, 0.1f, 5.0f, 4.0f, HANDS_MAX_SCALE_FACTOR*ofGetWidth(), false);
+    float radius = ofMap(audioMidEnergy, 0.1f, 4.0f, 4.0f, HANDS_MAX_SCALE_FACTOR*ofGetWidth(), false);
     
 #ifdef USE_KINECT
     for (int i=0; i<handPhysics->getNumTrackedHands(); i++)
@@ -526,7 +528,7 @@ void ofApplication::drawUserOutline()
 {
 #ifdef USE_KINECT
     ofEnableBlendMode(OF_BLENDMODE_ALPHA);
-    float scale = debugMode ? 1.0 : ofMap(audioLowFreq, 0.0f, 1.0f, 1.0f, userShapeScaleFactor, true);
+    float scale = debugMode ? 1.0 : ofMap(audioLowEnergy, 0.0f, 1.0f, 1.0f, userShapeScaleFactor, true);
     ofSetColor(userOutlineColorHSB.getOfColor());
     ofPushMatrix();
     ofScale(scale, scale);
@@ -535,7 +537,32 @@ void ofApplication::drawUserOutline()
     ofPopMatrix();
 #endif
 }
-    
+
+void ofApplication::drawTouches()
+{
+    int touchCount = touchMap.size();
+    if (touchCount > 0){
+        touchLine.clear();
+        
+        if (touchCount <= 3){
+            if (touchCount == 1){
+                ofVec2f point = (*touchMap.begin()).second;
+                ofCircle(point, 2.0f);
+            }
+            else{
+                map<int,ofVec2f>::iterator it = touchMap.begin();
+                while (it != touchMap.end()){
+                    touchLine.addVertex((*it++).second*ofGetWindowSize());
+                }
+                if (touchCount == 3) touchLine.close();
+            }
+        }
+        
+        ofSetLineWidth(3.0f);
+        ofSetColor(ofFloatColor(1.0f - bgBrightnessFade));
+        touchLine.draw();
+    }
+}
 
 #pragma mark - Inputs
     
@@ -588,6 +615,12 @@ void ofApplication::processOscMessages()
             poiSpriteColorHSB.h = ofMap(m.getArgAsFloat(0), 0.0f, 1.0f, 0.0f, 254.0f, true);
         }
         
+        // ------- TOUCH PAD ------
+        else if (a.find("/oF/multiPad/") != string::npos)
+        {
+            handleTouchPadMessage(m);
+        }
+        
         // ------- EFFECTS ------
         
         else if (a == "/oF/strobeRate")
@@ -602,7 +635,7 @@ void ofApplication::processOscMessages()
         else if (a == "/oF/trailZoom")
         {
             float oscv = m.getArgAsFloat(0);
-            trailZoom = powf(oscv, 2.0f) * (oscv >= 0.0f ? 1.0f : -1.0f) * 10.0f;
+            trailZoom = powf(fabs(oscv), 3.0f) * (oscv >= 0.0f ? 1.0f : -1.0f) * 10.0f;
         }
         else if (a == "/oF/trailAlphaFade")
         {
@@ -625,6 +658,36 @@ void ofApplication::processOscMessages()
     }
 }
 
+void ofApplication::handleTouchPadMessage(ofxOscMessage &m)
+{
+    string a = m.getAddress();
+    int a_len = a.length();
+    int r_len = string("/oF/multiPad/").length();
+    if (a_len > r_len)
+    {
+        string mRouteStr = a.substr(r_len, a_len-r_len);
+        int touchIndex = atoi(&mRouteStr.at(0));
+        
+        int delim_pos = mRouteStr.find("/");
+        if (delim_pos != string::npos)
+        {
+            // z-message
+            if (mRouteStr.at(mRouteStr.length()-1) == 'z')
+            {
+                bool on = m.getArgAsFloat(0) != 0.0;
+                if (!on){
+                    touchMap.erase(touchIndex);
+                }
+            }
+        }
+        else
+        {
+            // x-y are swapped in touchOSC landscape
+            touchMap[touchIndex] = ofVec2f(m.getArgAsFloat(1), m.getArgAsFloat(0));
+        }
+    }
+}
+    
 //--------------------------------------------------------------
 void ofApplication::keyPressed(int key){
     

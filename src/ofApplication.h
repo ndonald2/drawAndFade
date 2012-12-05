@@ -9,6 +9,7 @@
 #include "ofxAudioAnalyzer.h"
 #include "ofxHandPhysics.h"
 #include "ofxNDGraphicsUtils.h"
+#include <map>
 
 // ================================
 //      Compile-time options
@@ -51,7 +52,8 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
 
         // osc events
         void processOscMessages();
-        
+        void handleTouchPadMessage(ofxOscMessage &m);
+    
         // drawing
         void beginTrails();
         void endTrails();
@@ -62,6 +64,7 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
         void drawPoiSprites();
         void drawHandSprites();
         void drawUserOutline();
+        void drawTouches();
     
         // openGL
         ofFbo           mainFbo;
@@ -72,6 +75,9 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
         ofShader        gaussianBlurShader;
         ofShader        userMaskShader;
     
+        ofPolyline          touchLine;
+        map<int,ofVec2f>    touchMap;
+    
         // midi
         ofxMidiIn       midiIn;
     
@@ -81,9 +87,9 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
         // audio
         ofxAudioAnalyzer            audioAnalyzer;
         float                       audioSensitivity;
-        float                       audioLowFreq;
-        float                       audioMidFreq;
-        float                       audioHiFreq;
+        float                       audioLowEnergy;
+        float                       audioMidEnergy;
+        float                       audioHiEnergy;
         float                       audioHiPSF;
     
         // kinect
@@ -128,7 +134,6 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
         // USER OUTLINE
         ofxNDHSBColor   userOutlineColorHSB;
         float           userShapeScaleFactor;
-
     
         // POI
         ofxNDHSBColor   poiSpriteColorHSB;
