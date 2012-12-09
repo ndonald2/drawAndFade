@@ -3,7 +3,7 @@
 
 #define POI_MIN_SCALE_FACTOR 0.01
 
-#define HANDS_MAX_SCALE_FACTOR 0.25
+#define HANDS_MAX_SCALE_FACTOR 0.4
 
 #define TRAIL_FBO_SCALE      1.25
 
@@ -491,7 +491,7 @@ void ofApplication::drawPoiSprites()
 void ofApplication::drawHandSprites()
 {
     ofSetColor(handsColorHSB.getOfColor());
-    float radius = ofMap(audioMidEnergy, 0.1f, 4.0f, 4.0f, HANDS_MAX_SCALE_FACTOR*ofGetWidth(), false);
+    float radius = ofMap(audioMidEnergy, 0.1f, 4.0f, 2.0f, HANDS_MAX_SCALE_FACTOR*ofGetWidth(), false);
     
 #ifdef USE_KINECT
     for (int i=0; i<handPhysics->getNumTrackedHands(); i++)
@@ -604,10 +604,14 @@ void ofApplication::processOscMessages()
         }
         
         // ------- USER OUTLINE -------
-//        else if (a == "/oF/")
-//        {
-//            
-//        }
+        else if (a == "/oF/drawUser")
+        {
+            bDrawUserOutline = m.getArgAsFloat(0) != 0.0f;
+        }
+        else if (a == "/oF/drawUserTrails")
+        {
+            bTrailUserOutline = m.getArgAsFloat(0) != 0.0f;
+        }
         
         // -------- POI --------
         else if (a == "/oF/poiHue")
