@@ -8,13 +8,11 @@
 
 #import "SetupWindowController.h"
 #import "RtAudio.h"
-#import "RtMidi.h"
 #import "ofApplication.h"
 
 #define kPreviousResKey             @"previous_resolution"
 #define kPreviousFullscreenKey      @"previous_fullscreen"
 #define kPreviousAudioDeviceKey     @"previous_audio_device"
-#define kPreviousMidiInputDeviceKey @"previous_midi_input"
 
 #define kAudioDeviceName            @"device_name"
 #define kAudioDeviceIndex           @"device_index"
@@ -31,7 +29,6 @@
 @synthesize resBox = _resBox;
 @synthesize fullscreenCheck = _fullscreenCheck;
 @synthesize audioInputBox = _audioInputBox;
-@synthesize midiInputBox = _midiInputBox;
 @synthesize oscListenPortField = _oscListenPortField;
 @synthesize startButton = _startButton;
 @synthesize audioDevices = _audioDevices;
@@ -40,7 +37,6 @@
     [_resBox release];
     [_fullscreenCheck release];
     [_audioInputBox release];
-    [_midiInputBox release];
     [_startButton release];
     [_audioDevices release];
     [super dealloc];
@@ -128,27 +124,6 @@
             [self.audioInputBox selectItemAtIndex:0];
         }
     }
-    
-    // midi inputs
-    RtMidiIn rtMidi(RtMidi::MACOSX_CORE);
-    int nMidiInputs = rtMidi.getPortCount();
-    if (nMidiInputs > 0){
-                
-        for (int i=0; i<nMidiInputs; i++){
-            NSString *inputName = [NSString stringWithUTF8String:rtMidi.getPortName(i).c_str()];
-            [self.midiInputBox addItemWithTitle:inputName];
-        }
-        
-        NSString *prevDeviceName = [[NSUserDefaults standardUserDefaults] objectForKey:kPreviousMidiInputDeviceKey];
-        if (prevDeviceName && [self.midiInputBox.itemTitles containsObject:prevDeviceName])
-        {
-            [self.midiInputBox selectItemWithTitle:prevDeviceName];
-        }
-        else{
-            [self.midiInputBox selectItemAtIndex:0];
-        }
-    
-    }
 }
 
 - (IBAction)startPressed:(id)sender{
@@ -164,7 +139,6 @@
     int oscListenPort = [[self.oscListenPortField stringValue] intValue];
     
     ofApplicationSetAudioInputDeviceId(deviceIndex);
-    ofApplicationSetMidiInputDeviceId(self.midiInputBox.indexOfSelectedItem);
     ofApplicationSetOSCListenPort(oscListenPort);
     
     if (resComponents.count != 2){
@@ -182,11 +156,6 @@
         
         if (audioDeviceName != nil){
             [[NSUserDefaults standardUserDefaults] setObject:audioDeviceName forKey:kPreviousAudioDeviceKey];
-        }
-        
-        NSString *midiDevice = [self.midiInputBox titleOfSelectedItem];
-        if (midiDevice){
-            [[NSUserDefaults standardUserDefaults] setObject:midiDevice forKey:kPreviousMidiInputDeviceKey];
         }
         
         [[NSUserDefaults standardUserDefaults] synchronize];

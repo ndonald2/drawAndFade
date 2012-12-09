@@ -19,7 +19,6 @@
 		012D5645162CF133002ED710 /* ofxCvHaarFinder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 012D5638162CF133002ED710 /* ofxCvHaarFinder.cpp */; };
 		012D5646162CF133002ED710 /* ofxCvImage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 012D563A162CF133002ED710 /* ofxCvImage.cpp */; };
 		012D5647162CF133002ED710 /* ofxCvShortImage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 012D563D162CF133002ED710 /* ofxCvShortImage.cpp */; };
-		014BFFF7163F04AE003A4B5F /* ofxHandPhysics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 014BFFF5163F04AE003A4B5F /* ofxHandPhysics.cpp */; };
 		01655765163332F10055185A /* fftw3f.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0165573B163332F10055185A /* fftw3f.a */; };
 		01655766163332F10055185A /* kiss_fft.c in Sources */ = {isa = PBXBuildFile; fileRef = 01655740163332F10055185A /* kiss_fft.c */; };
 		01655767163332F10055185A /* kiss_fftr.c in Sources */ = {isa = PBXBuildFile; fileRef = 01655742163332F10055185A /* kiss_fftr.c */; };
@@ -243,8 +242,6 @@
 		012D563D162CF133002ED710 /* ofxCvShortImage.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxCvShortImage.cpp; sourceTree = "<group>"; };
 		012D563E162CF133002ED710 /* ofxCvShortImage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxCvShortImage.h; sourceTree = "<group>"; };
 		012D563F162CF133002ED710 /* ofxOpenCv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxOpenCv.h; sourceTree = "<group>"; };
-		014BFFF5163F04AE003A4B5F /* ofxHandPhysics.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxHandPhysics.cpp; sourceTree = "<group>"; };
-		014BFFF6163F04AE003A4B5F /* ofxHandPhysics.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxHandPhysics.h; sourceTree = "<group>"; };
 		01655737163332F10055185A /* fftw3.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fftw3.h; sourceTree = "<group>"; };
 		01655739163332F10055185A /* .gitignore */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		0165573B163332F10055185A /* fftw3f.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = fftw3f.a; sourceTree = "<group>"; };
@@ -501,7 +498,7 @@
 		E45BE97A0E8CC7DD009D7055 /* QuickTime.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuickTime.framework; path = /System/Library/Frameworks/QuickTime.framework; sourceTree = "<absolute>"; };
 		E4B69B5B0A3A1756003C02F2 /* drawAndFadeDebug.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = drawAndFadeDebug.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E4B69E1D0A3A1BDC003C02F2 /* main.mm */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.objcpp; name = main.mm; path = src/main.mm; sourceTree = SOURCE_ROOT; };
-		E4B69E1E0A3A1BDC003C02F2 /* ofApplication.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 30; name = ofApplication.cpp; path = src/ofApplication.cpp; sourceTree = SOURCE_ROOT; };
+		E4B69E1E0A3A1BDC003C02F2 /* ofApplication.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = ofApplication.cpp; path = src/ofApplication.cpp; sourceTree = SOURCE_ROOT; wrapsLines = 0; };
 		E4B69E1F0A3A1BDC003C02F2 /* ofApplication.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = ofApplication.h; path = src/ofApplication.h; sourceTree = SOURCE_ROOT; };
 		E4C2424410CC5A17004149E2 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		E4C2424510CC5A17004149E2 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = /System/Library/Frameworks/Cocoa.framework; sourceTree = "<absolute>"; };
@@ -1466,8 +1463,6 @@
 				E4B69E1D0A3A1BDC003C02F2 /* main.mm */,
 				E4B69E1F0A3A1BDC003C02F2 /* ofApplication.h */,
 				E4B69E1E0A3A1BDC003C02F2 /* ofApplication.cpp */,
-				014BFFF6163F04AE003A4B5F /* ofxHandPhysics.h */,
-				014BFFF5163F04AE003A4B5F /* ofxHandPhysics.cpp */,
 			);
 			path = src;
 			sourceTree = SOURCE_ROOT;
@@ -1593,7 +1588,6 @@
 				0165576B163332F10055185A /* ofxFftw.cpp in Sources */,
 				01A1C643163EF2F9004FFED0 /* ofxOpenNI.cpp in Sources */,
 				01A1C644163EF2F9004FFED0 /* ofxOpenNITypes.cpp in Sources */,
-				014BFFF7163F04AE003A4B5F /* ofxHandPhysics.cpp in Sources */,
 				01D12D8E164EC2650050A17F /* ofxHardwareDriver.cpp in Sources */,
 				01E09EE716503FCF0097E3D9 /* ofxNDGraphicsUtils.cpp in Sources */,
 				01B7152816595371006A7B0A /* ofxRtMidiIn.cpp in Sources */,

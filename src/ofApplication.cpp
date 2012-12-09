@@ -7,16 +7,16 @@
 
 #define TRAIL_FBO_SCALE      1.25
 
+#define SKEL_NUM_CIRCLES_HEAD       5
+#define SKEL_NUM_CIRCLES_UPPER_ARM  8
+#define SKEL_NUM_CIRCLES_LOWER_ARM  8
+
+
 static int s_inputAudioDeviceId = 0;
-static int s_inputMidiDeviceId = 0;
 static int s_oscListenPort = 9010;
 
 void ofApplicationSetAudioInputDeviceId(int deviceId){
     s_inputAudioDeviceId = deviceId;
-}
-
-void ofApplicationSetMidiInputDeviceId(int deviceId){
-    s_inputMidiDeviceId = deviceId;
 }
 
 void ofApplicationSetOSCListenPort(int listenPort){
@@ -32,21 +32,9 @@ float toOnePoleTC(float value, float minMs, float maxMs)
     return 1.0f - (1.0f/(ofGetFrameRate()*minMs*powf(10.0f,midiNorm*maxPow)*0.001f));
 }   
 
-ofApplication::ofApplication()
-{
-#ifdef USE_KINECT
-    handPhysics = NULL;
-#endif
-}
-
 ofApplication::~ofApplication()
 {
 #ifdef USE_KINECT
-    if (handPhysics){
-        delete handPhysics;
-        handPhysics = NULL;
-    }
-    
     // prevents crashing on exit (sometimes)
     kinectOpenNI.stop();
     kinectOpenNI.waitForThread();
@@ -59,24 +47,21 @@ void ofApplication::setup(){
     ofSetVerticalSync(true);
     ofEnableSmoothing();
     ofEnableArbTex();
+    ofSetCircleResolution(64);
     
     // setup animation parameters
     debugMode = false;
     
     // FLAGS
-    bDrawUserOutline = true;
-    bTrailUserOutline = true;
-    bDrawHands = false;
-    bTrailHands = false;
-    bDrawPoi = false;
-    bTrailPoi = false;
+    bDrawUserOutline = false;
+    bTrailUserOutline = false;
 
     // CIRCULAR GRADIENT + BACKGROUND
-    bgBrightnessFade = 0.0f;
-    bgSpotRadius = 1.0f;
+    bgBrightnessFade = 0.1f;
+    bgSpotRadius = 1.0f; //ofGetHeight()*0.75;
 
     // TRAILS
-    trailColorDecay = 0.975f; 
+    trailColorDecay = 0.8f;
     trailAlphaDecay = 0.98f;
     trailMinAlpha = 0.03f;
     trailVelocity = ofPoint(0.0f,80.0f);
@@ -87,13 +72,6 @@ void ofApplication::setup(){
     userShapeScaleFactor = 1.1f;
     strobeLastDrawTime = 0;
     strobeIntervalMs = 0;
-    
-    // POI
-    poiMaxScaleFactor = 0.1f;
-    poiSpriteColorHSB = ofxNDHSBColor(0,255,255);
-
-    // HANDS    
-    handsColorHSB = ofxNDHSBColor(0,0,200);
     
     ofFbo::Settings fboSettings;
     fboSettings.width = ofGetWidth();
@@ -134,11 +112,6 @@ void ofApplication::setup(){
     userMaskShader.load("shaders/vanilla.vert", "shaders/userDepthMask.frag");
     gaussianBlurShader.load("shaders/vanilla.vert", "shaders/gaussian.frag");
     
-    // midi setup
-    midiIn.setVerbose(false);
-    midiIn.openPort(s_inputMidiDeviceId);
-    midiIn.addListener(this);
-    
     // osc setup
     oscIn.setup(s_oscListenPort);
     
@@ -177,11 +150,11 @@ void ofApplication::setup(){
 #ifdef USE_USER_TRACKING
     // setup user generator
     kinectOpenNI.addUserGenerator();
-    kinectOpenNI.setMaxNumUsers(2);
+    kinectOpenNI.setMaxNumUsers(4);
     kinectOpenNI.setUseMaskPixelsAllUsers(true);
     kinectOpenNI.setUseMaskTextureAllUsers(true);
     kinectOpenNI.setUsePointCloudsAllUsers(false);
-    kinectOpenNI.setSkeletonProfile(XN_SKEL_PROFILE_UPPER);
+    kinectOpenNI.setSkeletonProfile(XN_SKEL_PROFILE_ALL);
     kinectOpenNI.setUserSmoothing(0.4);
 #else
     // hands generator
@@ -190,22 +163,9 @@ void ofApplication::setup(){
     kinectOpenNI.setMaxNumHands(2);
     kinectOpenNI.setMinTimeBetweenHands(50);
 #endif
-
     
     kinectOpenNI.start();
-    
-#ifdef USE_USER_TRACKING
-    handPhysics = new ofxHandPhysicsManager(kinectOpenNI, true);
-#else
-    handPhysics = new ofxHandPhysicsManager(kinectOpenNI, false);
-#endif
-    
-    handPhysics->restDistance = 0.0f;
-    handPhysics->springCoef = 100.0f;
-    handPhysics->smoothCoef = 0.5f;
-    handPhysics->friction = 0.08f;
-    handPhysics->gravity = ofVec2f(0,7000.0f);
-    handPhysics->physicsEnabled = true;
+
 #endif
     
 }
@@ -224,7 +184,6 @@ void ofApplication::update(){
 
 #ifdef USE_KINECT
     kinectOpenNI.update();
-    handPhysics->update();    
     if(bDrawUserOutline) updateUserOutline();
  #endif
     
@@ -242,11 +201,9 @@ void ofApplication::update(){
     glDisable(GL_DEPTH_TEST);
     
     beginTrails();
+    drawShapeSkeletons();
     if (shouldDrawNew){
         if (bDrawUserOutline && bTrailUserOutline) drawUserOutline();
-        if (bDrawHands && bTrailHands) drawHandSprites();
-        if (bDrawPoi && bTrailPoi) drawPoiSprites();
-        drawTouches();
     }
     endTrails();
     
@@ -255,12 +212,8 @@ void ofApplication::update(){
     
     if (bDrawUserOutline && !bTrailUserOutline && shouldDrawNew) drawUserOutline();
     
+    
     drawTrails();
-    if (shouldDrawNew){
-        if (bDrawHands && !bTrailHands) drawHandSprites();
-        if (bDrawPoi && !bTrailPoi) drawPoiSprites();
-    }
-
     mainFbo.end();
 }
 
@@ -270,6 +223,7 @@ void ofApplication::draw(){
     glDisable(GL_DEPTH_TEST);
     ofSetColor(255, 255, 255);
     ofEnableAlphaBlending();
+    ofFill();
     
     ofBackground(ofFloatColor(bgBrightnessFade));
     ofFloatColor scaledGradCircleColor = ofFloatColor(1.0f - bgBrightnessFade);
@@ -424,106 +378,7 @@ void ofApplication::updateUserOutline()
     userFbo.end();
 #endif
 }
-
-void ofApplication::drawPoiSprites()
-{
-    float shapeRadius = ofMap(audioHiPSF, 0.0, 1.0, POI_MIN_SCALE_FACTOR*ofGetWidth(), poiMaxScaleFactor*ofGetWidth(), true);
-    
-#ifdef USE_KINECT
-    for (int i=0; i<handPhysics->getNumTrackedHands(); i++)
-    {
-
-        ofPoint hp = handPhysics->getNormalizedSpritePositionForHand(i);
-        ofPoint hp1 = handPhysics->getNormalizedSpritePositionForHand(i, 1);
-        hp *= ofGetWindowSize();
-        hp1 *= ofGetWindowSize();
-        
-        ofxHandPhysicsManager::ofxHandPhysicsState physState = handPhysics->getPhysicsStateForHand(i);
-        float spriteVel = physState.spriteVelocity.length();
-        //float drawAlpha = ofMap(spriteVel, 0, 500, 180, 255);
-        //ofSetColor(poiSpriteColor.r, poiSpriteColor.g, poiSpriteColor.b, drawAlpha);
-
-#else
-    {
-        ofPoint hp = (ofGetWindowSize()/2.0f) + ofPoint(cosf(elapsedPhase/2.0f), sinf(elapsedPhase/2.0f))*100.0f;
-        ofPoint hp1 = hp;
-#endif
-        
-        ofSetColor(poiSpriteColorHSB.getOfColor());
-        ofFill();
-        
-        // --------- fake "waveform" drawing algorithm -------------
-        ofVec2f pDiff = hp - hp1;
-
-        float pointDistance = pDiff.length();
-        int nSegments = 5;
-        
-        ofPolyline spriteShape;
-        spriteShape.addVertex(ofPoint(0,0));
-        
-        if (pointDistance > 5.0f){
-            nSegments = MAX(5, pointDistance/15);
-            for (int n=0; n<nSegments; n++){
-                spriteShape.lineTo(ofPoint(pointDistance*(n+1)/(nSegments+1), ofRandom(-shapeRadius, shapeRadius)));
-            }
-            spriteShape.lineTo(ofPoint(pointDistance, 0));
-        }
-        else{
-            for (int n=0; n<nSegments; n++){
-                float angle = ofRandom(0, M_PI*2.0);
-                spriteShape.lineTo(ofPoint(cosf(angle),sinf(angle))*shapeRadius);
-            }
-            spriteShape.close();
-        }
-        
-        float dirAngle = ofVec2f(1.0f,0.0f).angle(pDiff);
-        
-        ofSetLineWidth(4.0f);
-        ofPushMatrix();
-        ofTranslate(hp1);
-        ofRotate(dirAngle, 0, 0, 1);
-        spriteShape.draw();
-        ofPopMatrix();
-        
-    }
-}
-
-void ofApplication::drawHandSprites()
-{
-    ofSetColor(handsColorHSB.getOfColor());
-    float radius = ofMap(audioMidEnergy, 0.1f, 4.0f, 2.0f, HANDS_MAX_SCALE_FACTOR*ofGetWidth(), false);
-    
-#ifdef USE_KINECT
-    for (int i=0; i<handPhysics->getNumTrackedHands(); i++)
-    {
-        
-        ofPoint handPos = handPhysics->getPhysicsStateForHand(i).handPositions[0];
-        handPos *= ofGetWindowSize()/ofPoint(640,480);
-#else
-    {
-        ofPoint handPos = ofGetWindowSize()/2.0f;
-#endif
-        if (radius > 4.0f){
-            ofSetLineWidth(3.0f);
-            ofPolyline randomShape;
-            randomShape.addVertex(ofPoint(0,0));
-            for (int s=0; s<4; s++){
-                float angle = M_PI*2.0f*ofRandomf();
-                randomShape.addVertex(ofPoint(cosf(angle)*radius, sinf(angle)*radius));
-            }
-            randomShape.close();
-            ofPushMatrix();
-            ofTranslate(handPos);
-            randomShape.draw();
-            ofPopMatrix();
-        }
-        else{
-            ofFill();
-            ofCircle(handPos, 4.0f);
-        }
-    }
-}
-    
+  
 void ofApplication::drawUserOutline()
 {
 #ifdef USE_KINECT
@@ -538,31 +393,49 @@ void ofApplication::drawUserOutline()
 #endif
 }
 
-void ofApplication::drawTouches()
+void ofApplication::drawShapeSkeletons()
 {
-    int touchCount = touchMap.size();
-    if (touchCount > 0){
-        touchLine.clear();
+    ofEnableBlendMode(OF_BLENDMODE_ALPHA);
+    ofNoFill();
+    ofSetLineWidth(3.0f);
+    
+    float height = ofGetHeight();
+    ofPoint currentCenter;
+    ofVec2f currentOffset;
+    float currentAngle = 0.0f;
+    float currentRadius = 100.0f;
+    ofFloatColor currentColor = ofFloatColor(1.0f,1.0f,1.0f);
+    ofPoint pointNorm = ofGetWindowSize()/ofPoint(kinectOpenNI.getWidth(), kinectOpenNI.getHeight());
+    pointNorm.z = 1.0f;
+    
+    
+    for (int u=0; u<kinectOpenNI.getNumTrackedUsers(); u++){
         
-        if (touchCount <= 3){
-            if (touchCount == 1){
-                ofVec2f point = (*touchMap.begin()).second;
-                ofCircle(point, 2.0f);
+        ofxOpenNIUser & user = kinectOpenNI.getTrackedUser(u);
+        if (user.isSkeleton()){
+            
+            // draw head as several circles
+            // low freq jitters size and center point
+            currentCenter = user.getJoint(JOINT_HEAD).getProjectivePosition()*pointNorm;
+            currentRadius = ofMap(currentCenter.z, 750, 3000, 60, 15, true);
+            
+            for (int c=0; c<SKEL_NUM_CIRCLES_HEAD; c++)
+            {
+                currentAngle = ofRandom(0, 2*M_PI);
+                currentOffset = ofVec2f(cosf(currentAngle), sinf(currentAngle)).normalized()*(audioLowEnergy + 0.15f)*currentRadius;
+                currentColor = ofFloatColor(1.0f).lerp(ofFloatColor::fromHsb(0.43, 0.8, 0.3f), CLAMP(audioLowEnergy + 0.1f, 0.0f, 1.0f));
+                ofSetColor(currentColor);
+                ofCircle(currentCenter.x + currentOffset.x, currentCenter.y + currentOffset.y, currentRadius*0.66f);
             }
-            else{
-                map<int,ofVec2f>::iterator it = touchMap.begin();
-                while (it != touchMap.end()){
-                    touchLine.addVertex((*it++).second*ofGetWindowSize());
-                }
-                if (touchCount == 3) touchLine.close();
-            }
+            
+            // draw neck
+            ofxOpenNILimb & currentLimb = user.getLimb(LIMB_NECK);
+            ofPoint limbStart = currentLimb.getStartJoint().getProjectivePosition()*pointNorm;
+            ofPoint limbEnd = currentLimb.getEndJoint().getProjectivePosition()*pointNorm;
         }
-        
-        ofSetLineWidth(3.0f);
-        ofSetColor(ofFloatColor(1.0f - bgBrightnessFade));
-        touchLine.draw();
     }
 }
+
 
 #pragma mark - Inputs
     
@@ -584,15 +457,7 @@ void ofApplication::processOscMessages()
         {
             bTrailUserOutline = m.getArgAsFloat(0) != 0.0f;
         }
-        else if (a == "/oF/drawPoi")
-        {
-            bDrawPoi = m.getArgAsFloat(0) != 0.0f;
-        }
-        else if (a == "/oF/drawPoiTrails")
-        {
-            bTrailPoi = m.getArgAsFloat(0) != 0.0f;
-        }
-        
+
         // ------- BACKGROUND ---------
         else if (a == "/oF/bgBrightFade")
         {
@@ -611,18 +476,6 @@ void ofApplication::processOscMessages()
         else if (a == "/oF/drawUserTrails")
         {
             bTrailUserOutline = m.getArgAsFloat(0) != 0.0f;
-        }
-        
-        // -------- POI --------
-        else if (a == "/oF/poiHue")
-        {
-            poiSpriteColorHSB.h = ofMap(m.getArgAsFloat(0), 0.0f, 1.0f, 0.0f, 254.0f, true);
-        }
-        
-        // ------- TOUCH PAD ------
-        else if (a.find("/oF/multiPad/") != string::npos)
-        {
-            handleTouchPadMessage(m);
         }
         
         // ------- EFFECTS ------
@@ -661,36 +514,6 @@ void ofApplication::processOscMessages()
         }
     }
 }
-
-void ofApplication::handleTouchPadMessage(ofxOscMessage &m)
-{
-    string a = m.getAddress();
-    int a_len = a.length();
-    int r_len = string("/oF/multiPad/").length();
-    if (a_len > r_len)
-    {
-        string mRouteStr = a.substr(r_len, a_len-r_len);
-        int touchIndex = atoi(&mRouteStr.at(0));
-        
-        int delim_pos = mRouteStr.find("/");
-        if (delim_pos != string::npos)
-        {
-            // z-message
-            if (mRouteStr.at(mRouteStr.length()-1) == 'z')
-            {
-                bool on = m.getArgAsFloat(0) != 0.0;
-                if (!on){
-                    touchMap.erase(touchIndex);
-                }
-            }
-        }
-        else
-        {
-            // x-y are swapped in touchOSC landscape
-            touchMap[touchIndex] = ofVec2f(m.getArgAsFloat(1), m.getArgAsFloat(0));
-        }
-    }
-}
     
 //--------------------------------------------------------------
 void ofApplication::keyPressed(int key){
@@ -719,7 +542,6 @@ void ofApplication::keyPressed(int key){
             
         case 'd':
             debugMode = !debugMode;
-            midiIn.setVerbose(debugMode);
             break;
                         
         default:
@@ -775,80 +597,3 @@ void ofApplication::dragEvent(ofDragInfo dragInfo){
 
 }
 
-void ofApplication::newMidiMessage(ofxMidiMessage& msg)
-{
-    static float w = ofGetWidth();
-    static float h = ofGetHeight();
-    
-    // filter by control number (any channel)
-    switch (msg.control) {
-            
-        // ----- FLAGS -----
-        case 1:
-            bDrawUserOutline = msg.value >= 64;
-            break;
-            
-        case 2:
-            bTrailUserOutline = msg.value >= 64;
-            break;
-            
-        case 3:
-            bDrawHands = msg.value >= 64;
-            break;
-            
-        case 4:
-            bTrailHands = msg.value >= 64;
-            break;
-            
-        case 5:
-            bDrawPoi = msg.value >= 64;
-            break;
-            
-        case 6:
-            bTrailPoi = msg.value >= 64;
-            break;
-            
-            
-        // ----- BG + GRADIENT -----
-        // Colors done this way because ofColor inherently resets Hue/Sat when reaching full black/white
-          
-        // TODO After changing draw routine
-
-        // ----- TRAILS -----
-        case 30:
-            trailVelocity.x = ofMap((float)msg.value, 0, 127, -300.0f, 300.0f);
-            break;
-            
-        case 31:
-            trailVelocity.y = ofMap((float)msg.value, 0, 127, -300.0f, 300.0f);
-            break;
-            
-        case 34:
-            trailZoom = ofMap((float)msg.value, 0, 127, -0.5f, 0.5f);
-            break;
-            
-        case 35:
-            trailAlphaDecay = toOnePoleTC((float)msg.value/127.0f, 10, 10000);
-            break;
-            
-        case 36:
-            trailColorDecay = toOnePoleTC((float)msg.value/127.0f, 10, 10000);
-            break;
-            
-        case 37:
-            trailMinAlpha = ofMap((float)msg.value, 0, 127, 0.02f, 0.15f);
-            break;
-            
-        case 91:
-            strobeIntervalMs = ofMap((float)msg.value, 0, 127, 10.0f, 250.0f);
-            break;
-            
-        // Audio tuning
-        case 120:
-            audioSensitivity = ofMap((float)msg.value, 0, 127, 0.5f, 2.0f, true);
-            break;
-            
-        default:
-            break;
-    }
-}

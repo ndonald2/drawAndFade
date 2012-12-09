@@ -1,13 +1,11 @@
 #pragma once
 
 #include "ofMain.h"
-#include "ofxMidi.h"
 #include "ofxOsc.h"
 #include "ofxOpenNI.h"
 #include "ofxHardwareDriver.h"
 #include "ofxOpenCv.h"
 #include "ofxAudioAnalyzer.h"
-#include "ofxHandPhysics.h"
 #include "ofxNDGraphicsUtils.h"
 #include <map>
 
@@ -20,13 +18,11 @@
 #define USE_USER_TRACKING
 
 extern void ofApplicationSetAudioInputDeviceId(int deviceId);
-extern void ofApplicationSetMidiInputDeviceId(int deviceId);
 extern void ofApplicationSetOSCListenPort(int listenPort);
 
-class ofApplication : public ofBaseApp, public ofxMidiListener {
+class ofApplication : public ofBaseApp {
 	public:
     
-        ofApplication();
         ~ofApplication();
     
 		void setup();
@@ -43,28 +39,21 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
 		void windowResized(int w, int h);
 		void dragEvent(ofDragInfo dragInfo);
         void gotMessage(ofMessage msg);
-        
-        // midi events
-        void newMidiMessage(ofxMidiMessage& msg);
-    
     
     private:
 
         // osc events
         void processOscMessages();
-        void handleTouchPadMessage(ofxOscMessage &m);
     
         // drawing
         void beginTrails();
         void endTrails();
         
         void updateUserOutline();
-        
+        void drawShapeSkeletons();
+    
         void drawTrails();
-        void drawPoiSprites();
-        void drawHandSprites();
         void drawUserOutline();
-        void drawTouches();
     
         // openGL
         ofFbo           mainFbo;
@@ -74,12 +63,6 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
         ofShader        trailsShader;
         ofShader        gaussianBlurShader;
         ofShader        userMaskShader;
-    
-        ofPolyline          touchLine;
-        map<int,ofVec2f>    touchMap;
-    
-        // midi
-        ofxMidiIn       midiIn;
     
         // osc
         ofxOscReceiver  oscIn;
@@ -96,7 +79,6 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
 #ifdef USE_KINECT
         ofxOpenNI                   kinectOpenNI;
         ofxHardwareDriver           kinectDriver;
-        ofxHandPhysicsManager *     handPhysics;
         int                         kinectAngle;
 #endif
         // renderer state
@@ -104,16 +86,11 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
         bool        debugMode;
     
     
-    
         // ----- animation options ------
     
         // FLAGS
         bool        bDrawUserOutline;
         bool        bTrailUserOutline;
-        bool        bDrawHands;
-        bool        bTrailHands;
-        bool        bDrawPoi;
-        bool        bTrailPoi;
     
         // FREEZE FRAME
         float       strobeIntervalMs;
@@ -134,13 +111,5 @@ class ofApplication : public ofBaseApp, public ofxMidiListener {
         // USER OUTLINE
         ofxNDHSBColor   userOutlineColorHSB;
         float           userShapeScaleFactor;
-    
-        // POI
-        ofxNDHSBColor   poiSpriteColorHSB;
-        float           poiMaxScaleFactor;
-    
-        // HANDS
-        ofxNDHSBColor   handsColorHSB;
-
     
 };
