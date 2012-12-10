@@ -51,6 +51,7 @@ class ofApplication : public ofBaseApp {
         
         void updateUserOutline();
         void drawShapeSkeletons();
+        void drawCirclesForLimb(ofxOpenNILimb & limb);
     
         void drawTrails();
         void drawUserOutline();
@@ -63,6 +64,8 @@ class ofApplication : public ofBaseApp {
         ofShader        trailsShader;
         ofShader        gaussianBlurShader;
         ofShader        userMaskShader;
+    
+        ofVec3f         screenNormScale;
     
         // osc
         ofxOscReceiver  oscIn;

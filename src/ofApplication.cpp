@@ -7,9 +7,8 @@
 
 #define TRAIL_FBO_SCALE      1.25
 
-#define SKEL_NUM_CIRCLES_HEAD       5
-#define SKEL_NUM_CIRCLES_UPPER_ARM  8
-#define SKEL_NUM_CIRCLES_LOWER_ARM  8
+#define SKEL_NUM_CIRCLES_PER_LIMB   10
+
 
 
 static int s_inputAudioDeviceId = 0;
@@ -45,6 +44,7 @@ void ofApplication::setup(){
     
     // Renderer
     ofSetVerticalSync(true);
+    ofSetFrameRate(60);
     ofEnableSmoothing();
     ofEnableArbTex();
     ofSetCircleResolution(64);
@@ -57,7 +57,7 @@ void ofApplication::setup(){
     bTrailUserOutline = false;
 
     // CIRCULAR GRADIENT + BACKGROUND
-    bgBrightnessFade = 0.1f;
+    bgBrightnessFade = 0.25f;
     bgSpotRadius = 1.0f; //ofGetHeight()*0.75;
 
     // TRAILS
@@ -125,7 +125,7 @@ void ofApplication::setup(){
     audioAnalyzer.setup(audioSettings);
     
     audioAnalyzer.setAttackInRegion(10, AA_FREQ_REGION_LOW);
-    audioAnalyzer.setReleaseInRegion(250, AA_FREQ_REGION_LOW);
+    audioAnalyzer.setReleaseInRegion(200, AA_FREQ_REGION_LOW);
     audioAnalyzer.setAttackInRegion(5, AA_FREQ_REGION_MID);
     audioAnalyzer.setReleaseInRegion(120, AA_FREQ_REGION_MID);
     audioAnalyzer.setAttackInRegion(1, AA_FREQ_REGION_HIGH);
@@ -134,7 +134,7 @@ void ofApplication::setup(){
     // kinect setup
 #ifdef USE_KINECT    
     
-    kinectDriver.setup();
+    //kinectDriver.setup();
     kinectAngle = 0;
     
     kinectOpenNI.setup();
@@ -150,12 +150,12 @@ void ofApplication::setup(){
 #ifdef USE_USER_TRACKING
     // setup user generator
     kinectOpenNI.addUserGenerator();
-    kinectOpenNI.setMaxNumUsers(4);
+    kinectOpenNI.setMaxNumUsers(3);
     kinectOpenNI.setUseMaskPixelsAllUsers(true);
     kinectOpenNI.setUseMaskTextureAllUsers(true);
     kinectOpenNI.setUsePointCloudsAllUsers(false);
     kinectOpenNI.setSkeletonProfile(XN_SKEL_PROFILE_ALL);
-    kinectOpenNI.setUserSmoothing(0.4);
+    kinectOpenNI.setUserSmoothing(0.66);
 #else
     // hands generator
     kinectOpenNI.addHandsGenerator();
@@ -175,7 +175,7 @@ void ofApplication::update(){
     
     float elapsedTime = ofGetElapsedTimef();
 
-    audioLowEnergy = ofMap(audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity, 0.25f, 3.0f, 0.0f, 1.0f, true);
+    audioLowEnergy = ofMap(audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity, 0.3f, 1.0f, 0.0f, 1.0f, true);
     audioMidEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_MID)*audioSensitivity;
     audioHiPSF = ofMap(audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_HIGH)*audioSensitivity, 0.3f, 4.0f, 0.0f, 1.0f, true);
     elapsedPhase = 2.0*M_PI*elapsedTime;
@@ -183,6 +183,8 @@ void ofApplication::update(){
     processOscMessages();
 
 #ifdef USE_KINECT
+    screenNormScale = ofGetWindowSize()/ofPoint(kinectOpenNI.getWidth(), kinectOpenNI.getHeight());
+    screenNormScale.z = 1.0f;
     kinectOpenNI.update();
     if(bDrawUserOutline) updateUserOutline();
  #endif
@@ -253,8 +255,7 @@ void ofApplication::draw(){
         ss << "Audio Signal PSF: " << audioAnalyzer.getTotalPSF();
         ofDrawBitmapString(ss.str(), 20,45);
         ss.str(std::string());
-        ss << "Region Energy -- Low: " << audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW) <<
-        " Mid: " << audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_MID) << " High: " << audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_HIGH);
+        ss << "Region Energy -- Low: " << audioLowEnergy << " Mid: " << audioMidEnergy << " High: " << audioHiEnergy;
         ofDrawBitmapString(ss.str(), 20, 60);
         ss.str(std::string());
         ss << "Region PSF -- Low: " << audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_LOW) <<
@@ -397,17 +398,16 @@ void ofApplication::drawShapeSkeletons()
 {
     ofEnableBlendMode(OF_BLENDMODE_ALPHA);
     ofNoFill();
-    ofSetLineWidth(3.0f);
+    ofSetLineWidth(2.0f);
     
     float height = ofGetHeight();
+    float depthScale = 1.0f;
+    
     ofPoint currentCenter;
     ofVec2f currentOffset;
+    ofColor currentColor;
     float currentAngle = 0.0f;
     float currentRadius = 100.0f;
-    ofFloatColor currentColor = ofFloatColor(1.0f,1.0f,1.0f);
-    ofPoint pointNorm = ofGetWindowSize()/ofPoint(kinectOpenNI.getWidth(), kinectOpenNI.getHeight());
-    pointNorm.z = 1.0f;
-    
     
     for (int u=0; u<kinectOpenNI.getNumTrackedUsers(); u++){
         
@@ -416,24 +416,78 @@ void ofApplication::drawShapeSkeletons()
             
             // draw head as several circles
             // low freq jitters size and center point
-            currentCenter = user.getJoint(JOINT_HEAD).getProjectivePosition()*pointNorm;
-            currentRadius = ofMap(currentCenter.z, 750, 3000, 60, 15, true);
             
-            for (int c=0; c<SKEL_NUM_CIRCLES_HEAD; c++)
+            // get length of neck joint to base head size
+            ofxOpenNILimb & neck = user.getLimb(LIMB_NECK);
+            float neckLength = (neck.getStartJoint().getProjectivePosition()*screenNormScale - neck.getEndJoint().getProjectivePosition()*screenNormScale).length();
+            
+            currentCenter = user.getJoint(JOINT_HEAD).getProjectivePosition()*screenNormScale;
+            
+            // base depth scale off of head Z
+            currentRadius = 0.45*neckLength;
+            currentCenter.z = 0.0f;
+            ofPushMatrix();
+            ofTranslate(currentCenter);
+            for (int c=0; c<SKEL_NUM_CIRCLES_PER_LIMB; c++)
             {
                 currentAngle = ofRandom(0, 2*M_PI);
-                currentOffset = ofVec2f(cosf(currentAngle), sinf(currentAngle)).normalized()*(audioLowEnergy + 0.15f)*currentRadius;
-                currentColor = ofFloatColor(1.0f).lerp(ofFloatColor::fromHsb(0.43, 0.8, 0.3f), CLAMP(audioLowEnergy + 0.1f, 0.0f, 1.0f));
+                currentOffset = ofVec2f(cosf(currentAngle), sinf(currentAngle)).normalized()*(audioLowEnergy*0.35f + 0.01f)*currentRadius;
+                currentColor = ofColor(255).lerp(ofColor(22,74,196), ofRandom(0.2f, 1.0f));
+                currentColor.a = 220;
                 ofSetColor(currentColor);
-                ofCircle(currentCenter.x + currentOffset.x, currentCenter.y + currentOffset.y, currentRadius*0.66f);
+                ofEllipse(currentOffset, currentRadius, currentRadius*2.0f);
             }
-            
-            // draw neck
-            ofxOpenNILimb & currentLimb = user.getLimb(LIMB_NECK);
-            ofPoint limbStart = currentLimb.getStartJoint().getProjectivePosition()*pointNorm;
-            ofPoint limbEnd = currentLimb.getEndJoint().getProjectivePosition()*pointNorm;
+            ofPopMatrix();
+
+            drawCirclesForLimb(user.getLimb(LIMB_LEFT_SHOULDER));
+            drawCirclesForLimb(user.getLimb(LIMB_LEFT_UPPER_ARM));
+            drawCirclesForLimb(user.getLimb(LIMB_LEFT_LOWER_ARM));
+            drawCirclesForLimb(user.getLimb(LIMB_RIGHT_SHOULDER));
+            drawCirclesForLimb(user.getLimb(LIMB_RIGHT_UPPER_ARM));
+            drawCirclesForLimb(user.getLimb(LIMB_RIGHT_LOWER_ARM));
+            drawCirclesForLimb(user.getLimb(LIMB_LEFT_UPPER_TORSO));
+            drawCirclesForLimb(user.getLimb(LIMB_RIGHT_UPPER_TORSO));
+            drawCirclesForLimb(user.getLimb(LIMB_LEFT_LOWER_TORSO));
+            drawCirclesForLimb(user.getLimb(LIMB_RIGHT_LOWER_TORSO));
+            drawCirclesForLimb(user.getLimb(LIMB_PELVIS));
+            drawCirclesForLimb(user.getLimb(LIMB_LEFT_UPPER_LEG));
+            drawCirclesForLimb(user.getLimb(LIMB_RIGHT_UPPER_LEG));
+            drawCirclesForLimb(user.getLimb(LIMB_LEFT_LOWER_LEG));
+            drawCirclesForLimb(user.getLimb(LIMB_RIGHT_LOWER_LEG));            
         }
     }
+}
+
+void ofApplication::drawCirclesForLimb(ofxOpenNILimb & limb)
+{
+    ofPoint limbStart = limb.getStartJoint().getProjectivePosition()*screenNormScale;
+    ofPoint limbEnd = limb.getEndJoint().getProjectivePosition()*screenNormScale;
+    limbStart.z = 0.0f;
+    limbEnd.z = 0.0f;
+    
+    ofPoint center = limbStart.middle(limbEnd);
+    float length = limbStart.distance(limbEnd)*2.2f;
+    
+    ofVec3f diff = limbStart - limbEnd;
+    float angle = ofVec3f(0,-1,0).angle(diff);
+    if (diff.x < 0){
+        angle = 360 - angle;
+    }
+    
+    ofPushMatrix();
+    ofTranslate(center);
+    ofRotateZ(angle);
+    
+    for (int c=0; c<SKEL_NUM_CIRCLES_PER_LIMB; c++){
+        float currentAngle = ofRandom(0, 2*M_PI);
+        ofPoint currentOffset = ofVec2f(cosf(currentAngle), sinf(currentAngle)).normalized()*(audioLowEnergy*0.15f + 0.002f)*length;
+        ofColor currentColor = ofColor(255).lerp(ofColor(22,74,196), ofRandom(0.2f, 1.0f));
+        currentColor.a = 220;
+        ofSetColor(currentColor);
+        ofEllipse(currentOffset, length*0.1, length);
+    }
+    ofPopMatrix();
+    
 }
 
 
