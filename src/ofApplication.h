@@ -88,6 +88,10 @@ class ofApplication : public ofBaseApp {
         float       elapsedPhase;
         bool        debugMode;
     
+        // assets and components
+        ofImage     paperImage;
+        ofPoint     paperInset;
+    
     
         // ----- animation options ------
     
@@ -98,10 +102,6 @@ class ofApplication : public ofBaseApp {
         // FREEZE FRAME
         float       strobeIntervalMs;
         float       strobeLastDrawTime;
-    
-        // CIRCULAR GRADIENT + BACKGROUND
-        float       bgBrightnessFade;
-        float       bgSpotRadius;
     
         // TRAILS
         ofPoint     trailVelocity;

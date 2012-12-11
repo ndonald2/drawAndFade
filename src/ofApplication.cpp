@@ -7,7 +7,7 @@
 
 #define TRAIL_FBO_SCALE      1.25
 
-#define SKEL_NUM_CIRCLES_PER_LIMB   10
+#define SKEL_NUM_CIRCLES_PER_LIMB   4
 
 
 
@@ -49,6 +49,9 @@ void ofApplication::setup(){
     ofEnableArbTex();
     ofSetCircleResolution(64);
     
+    // resources
+    paperImage.loadImage("white-paper.jpg");
+    
     // setup animation parameters
     debugMode = false;
     
@@ -56,22 +59,18 @@ void ofApplication::setup(){
     bDrawUserOutline = false;
     bTrailUserOutline = false;
 
-    // CIRCULAR GRADIENT + BACKGROUND
-    bgBrightnessFade = 0.25f;
-    bgSpotRadius = 1.0f; //ofGetHeight()*0.75;
-
     // TRAILS
     trailColorDecay = 0.8f;
-    trailAlphaDecay = 0.98f;
+    trailAlphaDecay = 0.92f;
     trailMinAlpha = 0.03f;
-    trailVelocity = ofPoint(0.0f,80.0f);
-    trailZoom = -0.1f;
+    trailVelocity = ofPoint(0.0f,0.0f);
+    trailZoom = 0.0f;
 
     // USER OUTLINE
     userOutlineColorHSB = ofxNDHSBColor(0,0,255);
     userShapeScaleFactor = 1.1f;
     strobeLastDrawTime = 0;
-    strobeIntervalMs = 0;
+    strobeIntervalMs = 70;
     
     ofFbo::Settings fboSettings;
     fboSettings.width = ofGetWidth();
@@ -155,7 +154,7 @@ void ofApplication::setup(){
     kinectOpenNI.setUseMaskTextureAllUsers(true);
     kinectOpenNI.setUsePointCloudsAllUsers(false);
     kinectOpenNI.setSkeletonProfile(XN_SKEL_PROFILE_ALL);
-    kinectOpenNI.setUserSmoothing(0.66);
+    kinectOpenNI.setUserSmoothing(0.5);
 #else
     // hands generator
     kinectOpenNI.addHandsGenerator();
@@ -189,32 +188,15 @@ void ofApplication::update(){
     if(bDrawUserOutline) updateUserOutline();
  #endif
     
-    // don't draw if frame freeze is turned on
-    bool shouldDrawNew = true;
-    if (strobeIntervalMs > 1000.0f/60.0f){
-        
-        shouldDrawNew = (elapsedTime - strobeLastDrawTime >= strobeIntervalMs/1000.0f);
-        if (shouldDrawNew){
-            strobeLastDrawTime = elapsedTime;
-        }
-    }
-    
     // draw to FBOs
     glDisable(GL_DEPTH_TEST);
     
     beginTrails();
     drawShapeSkeletons();
-    if (shouldDrawNew){
-        if (bDrawUserOutline && bTrailUserOutline) drawUserOutline();
-    }
     endTrails();
     
     mainFbo.begin();
     ofClear(0,0,0,0);
-    
-    if (bDrawUserOutline && !bTrailUserOutline && shouldDrawNew) drawUserOutline();
-    
-    
     drawTrails();
     mainFbo.end();
 }
@@ -222,21 +204,30 @@ void ofApplication::update(){
 //--------------------------------------------------------------
 void ofApplication::draw(){
     
+    
+    float elapsedTime = ofGetElapsedTimef();
+
     glDisable(GL_DEPTH_TEST);
-    ofSetColor(255, 255, 255);
     ofEnableAlphaBlending();
     ofFill();
     
-    ofBackground(ofFloatColor(bgBrightnessFade));
-    ofFloatColor scaledGradCircleColor = ofFloatColor(1.0f - bgBrightnessFade);
-    scaledGradCircleColor.a *= audioLowEnergy;
-    ofColor clearGCColor = scaledGradCircleColor;
-    clearGCColor.a = 0;
-    ofPushMatrix();
-    ofTranslate(ofGetWindowSize()/2.0f);
-    ofxNDCircularGradient(bgSpotRadius, scaledGradCircleColor, clearGCColor);
-    ofPopMatrix();
+    // draw paper texture
+    ofSetColor(255, 255, 255);
     
+    // don't draw if frame freeze is turned on
+    bool movePaper = true;
+    if (strobeIntervalMs > 1000.0f/60.0f){
+        movePaper = (elapsedTime - strobeLastDrawTime >= strobeIntervalMs/1000.0f);
+        if (movePaper){
+            strobeLastDrawTime = elapsedTime;
+            paperInset = ofPoint(ofRandom(0,paperImage.getWidth() - ofGetWidth()), ofRandom(0,paperImage.getHeight()-ofGetWidth()));
+        }
+    }
+    paperImage.drawSubsection(0, 0,
+                              ofGetWidth(), ofGetHeight(),
+                              paperInset.x, paperInset.y,
+                              ofGetWidth(), ofGetHeight());
+        
     // Draw the main FBO
     mainFbo.draw(0, 0);
 
@@ -246,7 +237,7 @@ void ofApplication::draw(){
         kinectOpenNI.drawSkeletons(0, 0, ofGetWidth(), ofGetHeight());
 #endif
         
-        ofSetColor(255, 255, 255);
+        ofSetColor(0);
         stringstream ss;
         ss << setprecision(2);
         ss << "Audio Signal Energy: " << audioAnalyzer.getSignalEnergy();
@@ -258,8 +249,7 @@ void ofApplication::draw(){
         ss << "Region Energy -- Low: " << audioLowEnergy << " Mid: " << audioMidEnergy << " High: " << audioHiEnergy;
         ofDrawBitmapString(ss.str(), 20, 60);
         ss.str(std::string());
-        ss << "Region PSF -- Low: " << audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_LOW) <<
-        " Mid: " << audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_MID) << " High: " << audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_HIGH);
+        ss << "Kick Energy: " << audioAnalyzer.getKickEnergy();
         ofDrawBitmapString(ss.str(), 20, 75);
         
         ofDrawBitmapString("Frame Rate: " + ofToString(ofGetFrameRate()), 20, 100);
@@ -398,16 +388,17 @@ void ofApplication::drawShapeSkeletons()
 {
     ofEnableBlendMode(OF_BLENDMODE_ALPHA);
     ofNoFill();
-    ofSetLineWidth(2.0f);
+    ofSetLineWidth(3.0f);
     
     float height = ofGetHeight();
     float depthScale = 1.0f;
     
     ofPoint currentCenter;
     ofVec2f currentOffset;
-    ofColor currentColor;
+    ofColor currentColor = ofColor(0,0,0);
     float currentAngle = 0.0f;
     float currentRadius = 100.0f;
+    float kickEnergy = audioLowEnergy*audioHiPSF;
     
     for (int u=0; u<kinectOpenNI.getNumTrackedUsers(); u++){
         
@@ -431,9 +422,8 @@ void ofApplication::drawShapeSkeletons()
             for (int c=0; c<SKEL_NUM_CIRCLES_PER_LIMB; c++)
             {
                 currentAngle = ofRandom(0, 2*M_PI);
-                currentOffset = ofVec2f(cosf(currentAngle), sinf(currentAngle)).normalized()*(audioLowEnergy*0.35f + 0.01f)*currentRadius;
-                currentColor = ofColor(255).lerp(ofColor(22,74,196), ofRandom(0.2f, 1.0f));
-                currentColor.a = 220;
+                currentOffset = c == -2 ? ofVec2f() : ofVec2f(cosf(currentAngle), sinf(currentAngle)).normalized()*(audioAnalyzer.getKickEnergy()*0.6f + 0.01f)*currentRadius;
+                currentColor.a = c == -2 ? 200 : 175;
                 ofSetColor(currentColor);
                 ofEllipse(currentOffset, currentRadius, currentRadius*2.0f);
             }
@@ -478,11 +468,12 @@ void ofApplication::drawCirclesForLimb(ofxOpenNILimb & limb)
     ofTranslate(center);
     ofRotateZ(angle);
     
+    ofColor currentColor = ofColor(0,0,0);
+
     for (int c=0; c<SKEL_NUM_CIRCLES_PER_LIMB; c++){
         float currentAngle = ofRandom(0, 2*M_PI);
-        ofPoint currentOffset = ofVec2f(cosf(currentAngle), sinf(currentAngle)).normalized()*(audioLowEnergy*0.15f + 0.002f)*length;
-        ofColor currentColor = ofColor(255).lerp(ofColor(22,74,196), ofRandom(0.2f, 1.0f));
-        currentColor.a = 220;
+        ofPoint currentOffset = c == -2 ? ofVec2f() : ofVec2f(cosf(currentAngle), sinf(currentAngle)).normalized()*(audioLowEnergy*0.15f + 0.002f)*length;
+        currentColor.a = c == -2 ? 200 : 175;
         ofSetColor(currentColor);
         ofEllipse(currentOffset, length*0.1, length);
     }
@@ -510,16 +501,6 @@ void ofApplication::processOscMessages()
         else if (a == "/of/drawUserTrails")
         {
             bTrailUserOutline = m.getArgAsFloat(0) != 0.0f;
-        }
-
-        // ------- BACKGROUND ---------
-        else if (a == "/oF/bgBrightFade")
-        {
-            bgBrightnessFade = m.getArgAsFloat(0);
-        }
-        else if (a == "/oF/bgSpotSize")
-        {
-            bgSpotRadius = ofMap(m.getArgAsFloat(0), 0.0f, 1.0f, 1.0f, ofGetHeight(), true);
         }
         
         // ------- USER OUTLINE -------

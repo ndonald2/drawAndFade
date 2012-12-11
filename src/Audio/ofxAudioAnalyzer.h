@@ -19,6 +19,9 @@ typedef enum {
     AA_FREQ_REGION_ALL
 } ofxAudioAnalyzerRegion;
 
+class ofxAudioAnalyzer;
+extern ofxAudioAnalyzer & SharedAudioAnalyzer();
+
 class ofxAudioAnalyzer : public ofBaseSoundInput{
     
 public:
@@ -43,6 +46,7 @@ public:
     float getSignalEnergyInRegion(ofxAudioAnalyzerRegion region, bool smoothed = true);
     float getTotalPSF(bool smoothed = true);
     float getPSFinRegion(ofxAudioAnalyzerRegion region, bool smoothed = true);
+    inline float getKickEnergy() { return kickEnergy; };
     
     struct Settings {
       
@@ -93,6 +97,8 @@ private:
     float           signalEnergySmoothed[AA_NUM_FREQ_REGIONS];
     float           signalPSF[AA_NUM_FREQ_REGIONS];
     float           signalPSFSmoothed[AA_NUM_FREQ_REGIONS];
+    float           kickEnergy;
+    
     FreqRegion      _lowRegion;
     FreqRegion      _midRegion;
     FreqRegion      _highRegion;

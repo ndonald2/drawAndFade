@@ -9,6 +9,11 @@
 
 #include "ofxAudioAnalyzer.h"
 
+static ofxAudioAnalyzer s_AudioAnalyzer;
+
+ofxAudioAnalyzer & SharedAudioAnalyzer(){
+    return s_AudioAnalyzer;
+}
 
 ofxAudioAnalyzer::Settings::Settings(){
     inputDeviceId = 0;
@@ -47,12 +52,13 @@ void ofxAudioAnalyzer::setup(Settings settings)
     memset(signalEnergySmoothed, 0, sizeof(float)*AA_NUM_FREQ_REGIONS);
     memset(signalPSF, 0, sizeof(float)*AA_NUM_FREQ_REGIONS);
     memset(signalPSFSmoothed, 0, sizeof(float)*AA_NUM_FREQ_REGIONS);
+    kickEnergy = 0.0f;
     
     // regions
     _lowRegion.lowerFreq = 40.0f;
-    _lowRegion.upperFreq = 160.0f;
+    _lowRegion.upperFreq = 150.0f;
     
-    _midRegion.lowerFreq = 100.0f;
+    _midRegion.lowerFreq = 150.0f;
     _midRegion.upperFreq = 3000.0f;
     
     _highRegion.lowerFreq = 3000.0f;
@@ -167,6 +173,9 @@ void ofxAudioAnalyzer::audioIn(float *input, int bufferSize, int nChannels)
         signalEnergySmoothed[region] = enSmoothed;
     }
 
+    float newKickEnergy = signalEnergySmoothed[AA_FREQ_REGION_LOW] * signalPSFSmoothed[AA_FREQ_REGION_LOW];
+    float kickCoef = newKickEnergy > kickEnergy ? coefAttack[AA_FREQ_REGION_LOW] : coefRelease[AA_FREQ_REGION_LOW];
+    kickEnergy = kickEnergy*coef + newKickEnergy*(1.0f-coef);
     
     // thread-safe assignments
     fftMutex.lock();
