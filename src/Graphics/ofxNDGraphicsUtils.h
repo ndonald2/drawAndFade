@@ -27,7 +27,5 @@ public:
 // Billboard rectangle - rect for displaying a texture. Draws vertices and ARB tex coords.
 extern void ofxNDBillboardRect(int x, int y, int w, int h, int tw, int th);
 
-
-
 // Circular gradient
 extern void ofxNDCircularGradient(float radius, const ofColor & start, const ofColor & end);

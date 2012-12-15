@@ -93,7 +93,6 @@
 		E4C2424810CC5A17004149E2 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E4C2424510CC5A17004149E2 /* Cocoa.framework */; };
 		E4C2424910CC5A17004149E2 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E4C2424610CC5A17004149E2 /* IOKit.framework */; };
 		E4EB6799138ADC1D00A09F29 /* GLUT.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BBAB23BE13894E4700AA2426 /* GLUT.framework */; };
-		F2871B631676DC6D00FBAF78 /* ofxPencilSkeleton.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F2871B611676DC6D00FBAF78 /* ofxPencilSkeleton.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -507,8 +506,6 @@
 		E4EB691F138AFCF100A09F29 /* CoreOF.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = CoreOF.xcconfig; path = ../../../libs/openFrameworksCompiled/project/osx/CoreOF.xcconfig; sourceTree = SOURCE_ROOT; };
 		E4EB6923138AFD0F00A09F29 /* Project.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Project.xcconfig; sourceTree = "<group>"; };
 		F2871B601676CD7600FBAF78 /* white-paper.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; name = "white-paper.jpg"; path = "bin/data/white-paper.jpg"; sourceTree = "<group>"; };
-		F2871B611676DC6D00FBAF78 /* ofxPencilSkeleton.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ofxPencilSkeleton.cpp; sourceTree = "<group>"; };
-		F2871B621676DC6D00FBAF78 /* ofxPencilSkeleton.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ofxPencilSkeleton.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1342,8 +1339,6 @@
 			children = (
 				01E09EE516503FBD0097E3D9 /* ofxNDGraphicsUtils.h */,
 				01E09EE616503FCF0097E3D9 /* ofxNDGraphicsUtils.cpp */,
-				F2871B611676DC6D00FBAF78 /* ofxPencilSkeleton.cpp */,
-				F2871B621676DC6D00FBAF78 /* ofxPencilSkeleton.h */,
 			);
 			path = Graphics;
 			sourceTree = "<group>";
@@ -1626,7 +1621,6 @@
 				019ABE13166AAEB000917201 /* ofxOscMessage.cpp in Sources */,
 				019ABE14166AAEB000917201 /* ofxOscReceiver.cpp in Sources */,
 				019ABE15166AAEB000917201 /* ofxOscSender.cpp in Sources */,
-				F2871B631676DC6D00FBAF78 /* ofxPencilSkeleton.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

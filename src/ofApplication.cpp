@@ -47,7 +47,7 @@ void ofApplication::setup(){
     ofSetFrameRate(60);
     ofEnableSmoothing();
     ofEnableArbTex();
-    ofSetCircleResolution(64);
+    ofSetCircleResolution(32);
     
     // resources
     paperImage.loadImage("white-paper.jpg");
@@ -124,11 +124,11 @@ void ofApplication::setup(){
     audioAnalyzer.setup(audioSettings);
     
     audioAnalyzer.setAttackInRegion(10, AA_FREQ_REGION_LOW);
-    audioAnalyzer.setReleaseInRegion(200, AA_FREQ_REGION_LOW);
+    audioAnalyzer.setReleaseInRegion(150, AA_FREQ_REGION_LOW);
     audioAnalyzer.setAttackInRegion(5, AA_FREQ_REGION_MID);
-    audioAnalyzer.setReleaseInRegion(120, AA_FREQ_REGION_MID);
+    audioAnalyzer.setReleaseInRegion(80, AA_FREQ_REGION_MID);
     audioAnalyzer.setAttackInRegion(1, AA_FREQ_REGION_HIGH);
-    audioAnalyzer.setReleaseInRegion(80, AA_FREQ_REGION_HIGH);
+    audioAnalyzer.setReleaseInRegion(40, AA_FREQ_REGION_HIGH);
     
     // kinect setup
 #ifdef USE_KINECT    
@@ -149,7 +149,7 @@ void ofApplication::setup(){
 #ifdef USE_USER_TRACKING
     // setup user generator
     kinectOpenNI.addUserGenerator();
-    kinectOpenNI.setMaxNumUsers(3);
+    kinectOpenNI.setMaxNumUsers(2);
     kinectOpenNI.setUseMaskPixelsAllUsers(true);
     kinectOpenNI.setUseMaskTextureAllUsers(true);
     kinectOpenNI.setUsePointCloudsAllUsers(false);
@@ -174,7 +174,7 @@ void ofApplication::update(){
     
     float elapsedTime = ofGetElapsedTimef();
 
-    audioLowEnergy = ofMap(audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity, 0.3f, 1.0f, 0.0f, 1.0f, true);
+    audioLowEnergy = ofMap(audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity, 0.15f, 1.0f, 0.0f, 1.0f, true);
     audioMidEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_MID)*audioSensitivity;
     audioHiPSF = ofMap(audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_HIGH)*audioSensitivity, 0.3f, 4.0f, 0.0f, 1.0f, true);
     elapsedPhase = 2.0*M_PI*elapsedTime;
@@ -422,7 +422,7 @@ void ofApplication::drawShapeSkeletons()
             for (int c=0; c<SKEL_NUM_CIRCLES_PER_LIMB; c++)
             {
                 currentAngle = ofRandom(0, 2*M_PI);
-                currentOffset = c == -2 ? ofVec2f() : ofVec2f(cosf(currentAngle), sinf(currentAngle)).normalized()*(audioAnalyzer.getKickEnergy()*0.6f + 0.01f)*currentRadius;
+                currentOffset = c == -2 ? ofVec2f() : ofVec2f(cosf(currentAngle), sinf(currentAngle)).normalized()*(audioLowEnergy*0.15f + 0.04f)*2*currentRadius;
                 currentColor.a = c == -2 ? 200 : 175;
                 ofSetColor(currentColor);
                 ofEllipse(currentOffset, currentRadius, currentRadius*2.0f);
@@ -472,7 +472,7 @@ void ofApplication::drawCirclesForLimb(ofxOpenNILimb & limb)
 
     for (int c=0; c<SKEL_NUM_CIRCLES_PER_LIMB; c++){
         float currentAngle = ofRandom(0, 2*M_PI);
-        ofPoint currentOffset = c == -2 ? ofVec2f() : ofVec2f(cosf(currentAngle), sinf(currentAngle)).normalized()*(audioLowEnergy*0.15f + 0.002f)*length;
+        ofPoint currentOffset = c == -2 ? ofVec2f() : ofVec2f(cosf(currentAngle), sinf(currentAngle)).normalized()*(audioLowEnergy*0.15f + 0.04f)*length;
         currentColor.a = c == -2 ? 200 : 175;
         ofSetColor(currentColor);
         ofEllipse(currentOffset, length*0.1, length);
