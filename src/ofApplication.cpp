@@ -1,15 +1,11 @@
 #include "ofApplication.h"
 #include <stdlib.h>
 
-#define POI_MIN_SCALE_FACTOR 0.01
-
-#define HANDS_MAX_SCALE_FACTOR 0.4
-
-#define TRAIL_FBO_SCALE      1.25
-
-#define SKEL_NUM_CIRCLES_PER_LIMB   4
-
-
+#define TRAIL_FBO_SCALE                 1.25
+#define SKEL_NUM_CIRCLES_PER_LIMB       4
+#define SCANLINE_TIME                   8.0
+#define PENCIL_MODE_TRAIL_DECAY         150
+#define OLDCOMP_MODE_TRAIL_DECAY        120
 
 static int s_inputAudioDeviceId = 0;
 static int s_oscListenPort = 9010;
@@ -24,11 +20,17 @@ void ofApplicationSetOSCListenPort(int listenPort){
 
 //--------------------------------------------------------------
 
-float toOnePoleTC(float value, float minMs, float maxMs)
+float toOnePoleTC(float ms)
 {
-    float midiNorm = ofMap(value, 0.0f, 1.0f, 0.0f, 1.0f, true);
+    return 1.0f - (1.0f/(ofGetFrameRate()*ms*0.001f));
+}
+
+// not actually linear, but exponential....
+float toOnePoleTCLerp(float value, float minMs, float maxMs)
+{
+    float lerp = CLAMP(value,0.0f,1.0f);
     float maxPow = log10f(maxMs/minMs);
-    return 1.0f - (1.0f/(ofGetFrameRate()*minMs*powf(10.0f,midiNorm*maxPow)*0.001f));
+    return toOnePoleTC(minMs*powf(10.0f,lerp*maxPow));
 }   
 
 ofApplication::~ofApplication()
@@ -54,21 +56,19 @@ void ofApplication::setup(){
     
     // setup animation parameters
     debugMode = false;
+    skMode = SkeletonDrawModePencil;
     
     // FLAGS
     bDrawUserOutline = false;
     bTrailUserOutline = false;
 
     // TRAILS
-    trailColorDecay = 0.8f;
-    trailAlphaDecay = 0.92f;
-    trailMinAlpha = 0.03f;
+    trailColorDecay = 1.0f;
+    trailAlphaDecay = toOnePoleTC(PENCIL_MODE_TRAIL_DECAY);
+    trailMinAlpha = 0.01f;
     trailVelocity = ofPoint(0.0f,0.0f);
     trailZoom = 0.0f;
 
-    // USER OUTLINE
-    userOutlineColorHSB = ofxNDHSBColor(0,0,255);
-    userShapeScaleFactor = 1.1f;
     strobeLastDrawTime = 0;
     strobeIntervalMs = 70;
     
@@ -101,15 +101,8 @@ void ofApplication::setup(){
     fboSettings.width = 640;
     fboSettings.height = 480;
     fboSettings.internalformat = GL_RGBA;
-    userFbo.allocate(fboSettings);
-    userFbo.begin();
-    userFbo.activateAllDrawBuffers();
-    ofClear(0,0,0,0);
-    userFbo.end();
     
     trailsShader.load("shaders/vanilla.vert", "shaders/trails.frag");
-    userMaskShader.load("shaders/vanilla.vert", "shaders/userDepthMask.frag");
-    gaussianBlurShader.load("shaders/vanilla.vert", "shaders/gaussian.frag");
     
     // osc setup
     oscIn.setup(s_oscListenPort);
@@ -133,7 +126,7 @@ void ofApplication::setup(){
     // kinect setup
 #ifdef USE_KINECT    
     
-    //kinectDriver.setup();
+    kinectDriver.setup();
     kinectAngle = 0;
     
     kinectOpenNI.setup();
@@ -162,7 +155,7 @@ void ofApplication::setup(){
     kinectOpenNI.setMaxNumHands(2);
     kinectOpenNI.setMinTimeBetweenHands(50);
 #endif
-    
+        
     kinectOpenNI.start();
 
 #endif
@@ -175,7 +168,8 @@ void ofApplication::update(){
     float elapsedTime = ofGetElapsedTimef();
 
     audioLowEnergy = ofMap(audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity, 0.15f, 1.0f, 0.0f, 1.0f, true);
-    audioMidEnergy = audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_MID)*audioSensitivity;
+    audioMidEnergy = ofMap(audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_MID)*audioSensitivity, 0.1f, 1.25f, 0.0f, 1.0f, true);
+    audioHiEnergy = ofMap(audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_HIGH)*audioSensitivity, 0.05f, 0.8f, 0.0f, 1.0f, true);
     audioHiPSF = ofMap(audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_HIGH)*audioSensitivity, 0.3f, 4.0f, 0.0f, 1.0f, true);
     elapsedPhase = 2.0*M_PI*elapsedTime;
     
@@ -185,7 +179,6 @@ void ofApplication::update(){
     screenNormScale = ofGetWindowSize()/ofPoint(kinectOpenNI.getWidth(), kinectOpenNI.getHeight());
     screenNormScale.z = 1.0f;
     kinectOpenNI.update();
-    if(bDrawUserOutline) updateUserOutline();
  #endif
     
     // draw to FBOs
@@ -197,6 +190,7 @@ void ofApplication::update(){
     
     mainFbo.begin();
     ofClear(0,0,0,0);
+    drawSceneBackground();
     drawTrails();
     mainFbo.end();
 }
@@ -204,30 +198,12 @@ void ofApplication::update(){
 //--------------------------------------------------------------
 void ofApplication::draw(){
     
-    
-    float elapsedTime = ofGetElapsedTimef();
-
     glDisable(GL_DEPTH_TEST);
-    ofEnableAlphaBlending();
+    ofDisableBlendMode();
     ofFill();
     
-    // draw paper texture
     ofSetColor(255, 255, 255);
     
-    // don't draw if frame freeze is turned on
-    bool movePaper = true;
-    if (strobeIntervalMs > 1000.0f/60.0f){
-        movePaper = (elapsedTime - strobeLastDrawTime >= strobeIntervalMs/1000.0f);
-        if (movePaper){
-            strobeLastDrawTime = elapsedTime;
-            paperInset = ofPoint(ofRandom(0,paperImage.getWidth() - ofGetWidth()), ofRandom(0,paperImage.getHeight()-ofGetWidth()));
-        }
-    }
-    paperImage.drawSubsection(0, 0,
-                              ofGetWidth(), ofGetHeight(),
-                              paperInset.x, paperInset.y,
-                              ofGetWidth(), ofGetHeight());
-        
     // Draw the main FBO
     mainFbo.draw(0, 0);
 
@@ -249,7 +225,7 @@ void ofApplication::draw(){
         ss << "Region Energy -- Low: " << audioLowEnergy << " Mid: " << audioMidEnergy << " High: " << audioHiEnergy;
         ofDrawBitmapString(ss.str(), 20, 60);
         ss.str(std::string());
-        ss << "Kick Energy: " << audioAnalyzer.getKickEnergy();
+        ss << "LowPSF: " << audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_LOW);
         ofDrawBitmapString(ss.str(), 20, 75);
         
         ofDrawBitmapString("Frame Rate: " + ofToString(ofGetFrameRate()), 20, 100);
@@ -322,141 +298,100 @@ void ofApplication::drawTrails()
     ofPopMatrix();
 }
 
+void ofApplication::drawSceneBackground()
+{
+    ofEnableAlphaBlending();
 
-void ofApplication::updateUserOutline()
-{
-#ifdef USE_KINECT
-    if (kinectOpenNI.getNumTrackedUsers() == 0)
-        return;
-    
-    if (kinectOpenNI.getTrackedUser(0).isCalibrating())
-        return;
-    
-    ofDisableBlendMode();
-    
-    ofTexture & depthTex = kinectOpenNI.getDepthTextureReference();
-    ofTexture & maskTex = kinectOpenNI.getTrackedUser(0).getMaskTextureReference();
-    
-    userFbo.begin();
-    ofClear(0,0,0,0);
-    
-    // ===== mask =====
-    userMaskShader.begin();
-    userMaskShader.setUniformTexture("depthTexture", depthTex, 1);
-    userMaskShader.setUniformTexture("maskTexture", maskTex, 2);
-    ofxNDBillboardRect(0, 0, userFbo.getWidth(), userFbo.getHeight(), depthTex.getWidth(), depthTex.getHeight());
-    userMaskShader.end();
-    
-    // ===== blur =====
-    gaussianBlurShader.begin();
-    
-    float blurAmt = 4.0f; //ofMap(audioLowEnergy, 0.0f, 1.0f, 0.01f, 15.0f, true);
-    
-    gaussianBlurShader.setUniform1f("sigma", blurAmt);
-    gaussianBlurShader.setUniform1f("nBlurPixels", 15.0f);
-    gaussianBlurShader.setUniform1i("isVertical", 0);
-    gaussianBlurShader.setUniformTexture("blurTexture",  userFbo.getTextureReference(), 1);
-    
-    ofxNDBillboardRect(0, 0, userFbo.getWidth(), userFbo.getHeight(), depthTex.getWidth(), depthTex.getHeight());
-    
-    gaussianBlurShader.setUniform1i("isVertical", 1);
-    gaussianBlurShader.setUniformTexture("blurTexture", userFbo.getTextureReference(), 1);
-    
-    ofxNDBillboardRect(0, 0, userFbo.getWidth(), userFbo.getHeight(), depthTex.getWidth(), depthTex.getHeight());
-    
-    gaussianBlurShader.end();
-    
-    userFbo.end();
-#endif
-}
-  
-void ofApplication::drawUserOutline()
-{
-#ifdef USE_KINECT
-    ofEnableBlendMode(OF_BLENDMODE_ALPHA);
-    float scale = debugMode ? 1.0 : ofMap(audioLowEnergy, 0.0f, 1.0f, 1.0f, userShapeScaleFactor, true);
-    ofSetColor(userOutlineColorHSB.getOfColor());
-    ofPushMatrix();
-    ofScale(scale, scale);
-    ofTranslate(-ofPoint(mainFbo.getWidth(), mainFbo.getHeight())*(scale - 1.0f)/2.0f);
-    userFbo.getTextureReference().draw(0,0,mainFbo.getWidth(),mainFbo.getHeight());
-    ofPopMatrix();
-#endif
+    if (skMode == SkeletonDrawModePencil)
+    {
+        ofSetColor(255, 255, 255);
+        ofFill();
+        
+        // draw paper texture
+        // don't draw if frame freeze is turned on
+        float elapsedTime = ofGetElapsedTimef();
+        bool movePaper = true;
+        if (strobeIntervalMs > 1000.0f/60.0f){
+            movePaper = (elapsedTime - strobeLastDrawTime >= strobeIntervalMs/1000.0f);
+            if (movePaper){
+                strobeLastDrawTime = elapsedTime;
+                paperInset = ofPoint(ofRandom(0,paperImage.getWidth() - ofGetWidth()), ofRandom(0,paperImage.getHeight()-ofGetWidth()));
+            }
+        }
+        paperImage.drawSubsection(0, 0,
+                                  ofGetWidth(), ofGetHeight(),
+                                  paperInset.x, paperInset.y,
+                                  ofGetWidth(), ofGetHeight());
+    }
+    else if (skMode == SkeletonDrawModeOldComputer)
+    {
+
+    }
 }
 
 void ofApplication::drawShapeSkeletons()
 {
-    ofEnableBlendMode(OF_BLENDMODE_ALPHA);
+    ofEnableAlphaBlending();
     ofNoFill();
     ofSetLineWidth(3.0f);
     
-    float height = ofGetHeight();
-    float depthScale = 1.0f;
-    
-    ofPoint currentCenter;
-    ofVec2f currentOffset;
-    ofColor currentColor = ofColor(0,0,0);
-    float currentAngle = 0.0f;
-    float currentRadius = 100.0f;
-    float kickEnergy = audioLowEnergy*audioHiPSF;
+    if (skMode == SkeletonDrawModePencil){
+        glDisable(GL_DEPTH_TEST);
+        ofSetColor(0,0,0,120);
+    }
+    else{
+        glEnable(GL_DEPTH_TEST);
+    }
     
     for (int u=0; u<kinectOpenNI.getNumTrackedUsers(); u++){
         
         ofxOpenNIUser & user = kinectOpenNI.getTrackedUser(u);
         if (user.isSkeleton()){
-            
-            // draw head as several circles
-            // low freq jitters size and center point
-            
-            // get length of neck joint to base head size
-            ofxOpenNILimb & neck = user.getLimb(LIMB_NECK);
-            float neckLength = (neck.getStartJoint().getProjectivePosition()*screenNormScale - neck.getEndJoint().getProjectivePosition()*screenNormScale).length();
-            
-            currentCenter = user.getJoint(JOINT_HEAD).getProjectivePosition()*screenNormScale;
-            
-            // base depth scale off of head Z
-            currentRadius = 0.45*neckLength;
-            currentCenter.z = 0.0f;
-            ofPushMatrix();
-            ofTranslate(currentCenter);
-            for (int c=0; c<SKEL_NUM_CIRCLES_PER_LIMB; c++)
-            {
-                currentAngle = ofRandom(0, 2*M_PI);
-                currentOffset = c == -2 ? ofVec2f() : ofVec2f(cosf(currentAngle), sinf(currentAngle)).normalized()*(audioLowEnergy*0.15f + 0.04f)*2*currentRadius;
-                currentColor.a = c == -2 ? 200 : 175;
-                ofSetColor(currentColor);
-                ofEllipse(currentOffset, currentRadius, currentRadius*2.0f);
-            }
-            ofPopMatrix();
 
-            drawCirclesForLimb(user.getLimb(LIMB_LEFT_SHOULDER));
-            drawCirclesForLimb(user.getLimb(LIMB_LEFT_UPPER_ARM));
-            drawCirclesForLimb(user.getLimb(LIMB_LEFT_LOWER_ARM));
-            drawCirclesForLimb(user.getLimb(LIMB_RIGHT_SHOULDER));
-            drawCirclesForLimb(user.getLimb(LIMB_RIGHT_UPPER_ARM));
-            drawCirclesForLimb(user.getLimb(LIMB_RIGHT_LOWER_ARM));
-            drawCirclesForLimb(user.getLimb(LIMB_LEFT_UPPER_TORSO));
-            drawCirclesForLimb(user.getLimb(LIMB_RIGHT_UPPER_TORSO));
-            drawCirclesForLimb(user.getLimb(LIMB_LEFT_LOWER_TORSO));
-            drawCirclesForLimb(user.getLimb(LIMB_RIGHT_LOWER_TORSO));
-            drawCirclesForLimb(user.getLimb(LIMB_PELVIS));
-            drawCirclesForLimb(user.getLimb(LIMB_LEFT_UPPER_LEG));
-            drawCirclesForLimb(user.getLimb(LIMB_RIGHT_UPPER_LEG));
-            drawCirclesForLimb(user.getLimb(LIMB_LEFT_LOWER_LEG));
-            drawCirclesForLimb(user.getLimb(LIMB_RIGHT_LOWER_LEG));            
+            if (skMode == SkeletonDrawModePencil){
+                
+                audOffsetScale = powf(audioLowEnergy,1.75f);
+                
+                for (Limb i=LIMB_LEFT_UPPER_TORSO; i<LIMB_COUNT; i++){
+                    drawShapeForLimb(user, i);
+                }
+            }
+            else if (skMode == SkeletonDrawModeOldComputer)
+            {
+                audSizeScale = 1.0f + (powf(audioLowEnergy,1.75f)*0.2);
+                audColorScale = powf(audioMidEnergy,1.75f);
+                            
+                drawShapeForLimb(user, LIMB_RIGHT_UPPER_ARM);
+                drawShapeForLimb(user, LIMB_RIGHT_LOWER_ARM);
+                drawShapeForLimb(user, LIMB_RIGHT_LOWER_LEG);
+                drawShapeForLimb(user, LIMB_RIGHT_UPPER_LEG);
+                drawShapeForLimb(user, LIMB_LEFT_LOWER_LEG);
+                drawShapeForLimb(user, LIMB_LEFT_UPPER_LEG);
+                drawShapeForLimb(user, LIMB_LEFT_UPPER_ARM);
+                drawShapeForLimb(user, LIMB_LEFT_LOWER_ARM);
+                drawShapeForLimb(user, LIMB_NECK);
+                drawShapeForTorso(user);
+
+            }
         }
     }
 }
 
-void ofApplication::drawCirclesForLimb(ofxOpenNILimb & limb)
+void ofApplication::drawShapeForLimb(ofxOpenNIUser & user, Limb limbNumber)
 {
+    ofxOpenNILimb & limb = user.getLimb(limbNumber);
+    
+    ofPoint center;
+    ofVec2f drawSize;
+    float length = 0.0f;
+    
     ofPoint limbStart = limb.getStartJoint().getProjectivePosition()*screenNormScale;
     ofPoint limbEnd = limb.getEndJoint().getProjectivePosition()*screenNormScale;
+    
+    float zFactor = limbEnd.z;
+    
     limbStart.z = 0.0f;
     limbEnd.z = 0.0f;
-    
-    ofPoint center = limbStart.middle(limbEnd);
-    float length = limbStart.distance(limbEnd)*2.2f;
     
     ofVec3f diff = limbStart - limbEnd;
     float angle = ofVec3f(0,-1,0).angle(diff);
@@ -464,26 +399,102 @@ void ofApplication::drawCirclesForLimb(ofxOpenNILimb & limb)
         angle = 360 - angle;
     }
     
-    ofPushMatrix();
-    ofTranslate(center);
-    ofRotateZ(angle);
-    
-    ofColor currentColor = ofColor(0,0,0);
-
-    for (int c=0; c<SKEL_NUM_CIRCLES_PER_LIMB; c++){
-        float currentAngle = ofRandom(0, 2*M_PI);
-        ofPoint currentOffset = c == -2 ? ofVec2f() : ofVec2f(cosf(currentAngle), sinf(currentAngle)).normalized()*(audioLowEnergy*0.15f + 0.04f)*length;
-        currentColor.a = c == -2 ? 200 : 175;
-        ofSetColor(currentColor);
-        ofEllipse(currentOffset, length*0.1, length);
+    if (limbNumber == LIMB_NECK){
+        length = limbStart.distance(limbEnd)*0.5;
+        center = user.getJoint(JOINT_HEAD).getProjectivePosition()*screenNormScale;
+        drawSize.x = ofMap(zFactor,500,3500,0.11,0.01,true)*ofGetWidth();
+        drawSize.y = drawSize.x*1.66f;
     }
-    ofPopMatrix();
+    else{
+        center = limbStart.middle(limbEnd);
+        length = limbStart.distance(limbEnd)*2.2f;
+        drawSize.x = ofMap(zFactor,500,3500,0.05,0.005,true)*ofGetWidth();
+        drawSize.y = length;
+    }
     
+    center.z = 0;
+    
+    
+    ofPushMatrix();
+
+
+    if (skMode == SkeletonDrawModePencil){
+
+        ofTranslate(center);
+        ofRotateZ(angle);
+        
+        for (int c=0; c<SKEL_NUM_CIRCLES_PER_LIMB; c++){
+            float currentAngle = ofRandom(0, 2*M_PI);
+            ofPoint currentOffset = c == -2 ? ofVec2f() : ofVec2f(cosf(currentAngle), sinf(currentAngle)).normalized()*drawSize.y*CLAMP((audOffsetScale*0.25 + 0.01f),0,0.25f);
+            ofEllipse(currentOffset, drawSize.x, drawSize.y);
+        }
+    }
+    else if (skMode == SkeletonDrawModeOldComputer)
+    {
+
+        ofTranslate(center);
+        ofRotateZ(angle);
+        if (limbNumber == LIMB_NECK){
+            float spinDegrees = ((elapsedPhase*0.1 + audSizeScale)/(2.0*M_PI))*360;
+            ofRotateY(spinDegrees);
+        }
+        
+        ofScale(drawSize.x, drawSize.y, drawSize.x);
+        ofScale(audSizeScale, audSizeScale, audSizeScale);
+
+        // green outline
+        ofColor lineColor = ofColor(40,40,40);
+        lineColor.lerp(ofColor(0,255,0), CLAMP(audColorScale, 0, 1));
+        
+        ofNoFill();
+        ofSetColor(lineColor);
+        
+        ofBox(0, 0, 0, 1);
+    }
+    
+    ofPopMatrix();
+}
+
+void ofApplication::drawShapeForTorso(ofxOpenNIUser &user)
+{
+    ofPoint ul = user.getJoint(JOINT_LEFT_SHOULDER).getProjectivePosition()*screenNormScale;
+    ofPoint ur = user.getJoint(JOINT_RIGHT_SHOULDER).getProjectivePosition()*screenNormScale;
+    ofPoint ll = user.getJoint(JOINT_LEFT_HIP).getProjectivePosition()*screenNormScale;
+    ofPoint lr = user.getJoint(JOINT_RIGHT_HIP).getProjectivePosition()*screenNormScale;
+    ofPoint tc = user.getJoint(JOINT_NECK).getProjectivePosition()*screenNormScale;
+    ofPoint cc = user.getJoint(JOINT_TORSO).getProjectivePosition()*screenNormScale;
+    ul.z = ur.z = ll.z = lr.z = tc.z = cc.z = 0;
+    
+    // get angle
+    ofVec3f bodyLine = tc - cc;
+    float bodyAngle = ofVec3f(0,-1,0).angle(bodyLine);
+    if (bodyLine.x < 0)
+    {
+        bodyAngle = 360 - bodyAngle;
+    }
+
+    // get size
+    ofPoint bodySize = ofPoint(MIN(fabsf(ul.distance(ur)), fabsf(ll.distance(lr))), fabsf(ul.distance(ll)));
+    
+    ofPushMatrix();
+    ofTranslate(cc.x, cc.y);
+    ofRotateZ(bodyAngle);
+    
+    ofScale(bodySize.x, bodySize.y, bodySize.x);
+    ofScale(audSizeScale, audSizeScale, audSizeScale);
+    
+    ofColor lineColor = ofColor(80,80,80);
+    lineColor.lerp(ofColor(0,255,0), CLAMP(audColorScale, 0, 1));
+    ofNoFill();
+    ofSetColor(lineColor);
+    ofBox(0, 0, 0, 1);
+    
+    ofPopMatrix();
 }
 
 
 #pragma mark - Inputs
-    
+
 void ofApplication::processOscMessages()
 {
     while (oscIn.hasWaitingMessages())
@@ -531,11 +542,11 @@ void ofApplication::processOscMessages()
         }
         else if (a == "/oF/trailAlphaFade")
         {
-            trailAlphaDecay = toOnePoleTC(m.getArgAsFloat(0), 10, 10000);
+            trailAlphaDecay = toOnePoleTCLerp(m.getArgAsFloat(0), 10, 10000);
         }
         else if (a == "/oF/trailColorFade")
         {
-            trailColorDecay = toOnePoleTC(m.getArgAsFloat(0), 10, 10000);
+            trailColorDecay = toOnePoleTCLerp(m.getArgAsFloat(0), 10, 10000);
         }
         else if (a == "/oF/trailMinAlpha")
         {
@@ -573,6 +584,18 @@ void ofApplication::keyPressed(int key){
             
         case '-':
             audioSensitivity = CLAMP(audioSensitivity*0.9f, 0.5f, 4.0f);
+            break;
+        
+        case 'm':
+            skMode = (SkeletonDrawMode)((skMode + 1) % SkeletonDrawModeNumModes);
+            if (skMode == SkeletonDrawModePencil)
+            {
+                trailAlphaDecay = toOnePoleTC(PENCIL_MODE_TRAIL_DECAY);
+            }
+            else if (skMode == SkeletonDrawModeOldComputer)
+            {
+                trailAlphaDecay = toOnePoleTC(OLDCOMP_MODE_TRAIL_DECAY);
+            }
             break;
             
         case 'd':

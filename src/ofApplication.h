@@ -9,6 +9,13 @@
 #include "ofxNDGraphicsUtils.h"
 #include <map>
 
+enum SkeletonDrawMode {
+    SkeletonDrawModePencil = 0,
+    SkeletonDrawModeOldComputer,
+    
+    SkeletonDrawModeNumModes
+};
+
 // ================================
 //      Compile-time options
 // ================================
@@ -48,24 +55,18 @@ class ofApplication : public ofBaseApp {
         // drawing
         void beginTrails();
         void endTrails();
-        
-        void updateUserOutline();
-        void drawShapeSkeletons();
-        void drawCirclesForLimb(ofxOpenNILimb & limb);
-    
         void drawTrails();
-        void drawUserOutline();
+    
+        void drawSceneBackground();
+        void drawShapeSkeletons();
+        void drawShapeForLimb(ofxOpenNIUser & user, Limb limbNumber);
+        void drawShapeForTorso(ofxOpenNIUser & user);
     
         // openGL
         ofFbo           mainFbo;
         ofFbo           trailsFbo;
-        ofFbo           userFbo;
-    
         ofShader        trailsShader;
-        ofShader        gaussianBlurShader;
-        ofShader        userMaskShader;
-    
-        ofVec3f         screenNormScale;
+        ofVec3f         screenNormScale;    
     
         // osc
         ofxOscReceiver  oscIn;
@@ -78,6 +79,11 @@ class ofApplication : public ofBaseApp {
         float                       audioHiEnergy;
         float                       audioHiPSF;
     
+        float                       audOffsetScale;
+        float                       audColorScale;
+        float                       audSizeScale;
+    
+    
         // kinect
 #ifdef USE_KINECT
         ofxOpenNI                   kinectOpenNI;
@@ -87,6 +93,8 @@ class ofApplication : public ofBaseApp {
         // renderer state
         float       elapsedPhase;
         bool        debugMode;
+    
+        SkeletonDrawMode    skMode;
     
         // assets and components
         ofImage     paperImage;
@@ -110,9 +118,5 @@ class ofApplication : public ofBaseApp {
         float       trailColorDecay;
         float       trailAlphaDecay;
         float       trailMinAlpha;
-    
-        // USER OUTLINE
-        ofxNDHSBColor   userOutlineColorHSB;
-        float           userShapeScaleFactor;
     
 };
