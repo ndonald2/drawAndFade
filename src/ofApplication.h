@@ -119,4 +119,6 @@ class ofApplication : public ofBaseApp {
         float       trailAlphaDecay;
         float       trailMinAlpha;
     
+        // colors
+        ofColor     lineColor;
 };

@@ -8,6 +8,5 @@ void main() {
     vec4 color = texture2DRect(texSampler, gl_TexCoord[0].xy);
     color.rgb *= colorDecay;
     color.a *= alphaDecay;
-    color.a = color.a < alphaMin ? 0.0 : color.a;
-    gl_FragColor = color;
+    gl_FragColor = color.a < alphaMin ? vec4(0,0,0,0) : color;
 }

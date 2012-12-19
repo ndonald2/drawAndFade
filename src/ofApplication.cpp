@@ -323,10 +323,6 @@ void ofApplication::drawSceneBackground()
                                   paperInset.x, paperInset.y,
                                   ofGetWidth(), ofGetHeight());
     }
-    else if (skMode == SkeletonDrawModeOldComputer)
-    {
-
-    }
 }
 
 void ofApplication::drawShapeSkeletons()
@@ -358,9 +354,15 @@ void ofApplication::drawShapeSkeletons()
             }
             else if (skMode == SkeletonDrawModeOldComputer)
             {
+                
                 audSizeScale = 1.0f + (powf(audioLowEnergy,1.75f)*0.2);
-                audColorScale = powf(audioMidEnergy,1.75f);
-                            
+                audColorScale = powf(audioHiEnergy,1.75f);
+                
+                // green outline
+                ofColor lineColor = ofColor(60,65,60);
+                lineColor.lerp(ofColor(0,255,0), CLAMP(audColorScale, 0, 1));
+                ofSetColor(lineColor);
+
                 drawShapeForLimb(user, LIMB_RIGHT_UPPER_ARM);
                 drawShapeForLimb(user, LIMB_RIGHT_LOWER_ARM);
                 drawShapeForLimb(user, LIMB_RIGHT_LOWER_LEG);
@@ -371,9 +373,17 @@ void ofApplication::drawShapeSkeletons()
                 drawShapeForLimb(user, LIMB_LEFT_LOWER_ARM);
                 drawShapeForLimb(user, LIMB_NECK);
                 drawShapeForTorso(user);
-
             }
         }
+    }
+    
+    if (skMode == SkeletonDrawModeOldComputer)
+    {
+        ofSetColor(0, 255, 0, 180);
+        float lineY = ofGetElapsedTimef()/SCANLINE_TIME;
+        lineY -= floorf(lineY);
+        lineY *= ofGetHeight();
+        ofLine(0, lineY, ofGetWidth(), lineY);
     }
 }
 
@@ -414,9 +424,7 @@ void ofApplication::drawShapeForLimb(ofxOpenNIUser & user, Limb limbNumber)
     
     center.z = 0;
     
-    
     ofPushMatrix();
-
 
     if (skMode == SkeletonDrawModePencil){
 
@@ -441,13 +449,6 @@ void ofApplication::drawShapeForLimb(ofxOpenNIUser & user, Limb limbNumber)
         
         ofScale(drawSize.x, drawSize.y, drawSize.x);
         ofScale(audSizeScale, audSizeScale, audSizeScale);
-
-        // green outline
-        ofColor lineColor = ofColor(40,40,40);
-        lineColor.lerp(ofColor(0,255,0), CLAMP(audColorScale, 0, 1));
-        
-        ofNoFill();
-        ofSetColor(lineColor);
         
         ofBox(0, 0, 0, 1);
     }
@@ -483,10 +484,6 @@ void ofApplication::drawShapeForTorso(ofxOpenNIUser &user)
     ofScale(bodySize.x, bodySize.y, bodySize.x);
     ofScale(audSizeScale, audSizeScale, audSizeScale);
     
-    ofColor lineColor = ofColor(80,80,80);
-    lineColor.lerp(ofColor(0,255,0), CLAMP(audColorScale, 0, 1));
-    ofNoFill();
-    ofSetColor(lineColor);
     ofBox(0, 0, 0, 1);
     
     ofPopMatrix();
