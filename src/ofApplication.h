@@ -61,6 +61,7 @@ class ofApplication : public ofBaseApp {
         void drawShapeSkeletons();
         void drawShapeForLimb(ofxOpenNIUser & user, Limb limbNumber);
         void drawShapeForTorso(ofxOpenNIUser & user);
+        void drawScanLine();
     
         // openGL
         ofFbo           mainFbo;

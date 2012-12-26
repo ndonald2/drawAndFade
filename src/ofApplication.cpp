@@ -6,6 +6,7 @@
 #define SCANLINE_TIME                   8.0
 #define PENCIL_MODE_TRAIL_DECAY         150
 #define OLDCOMP_MODE_TRAIL_DECAY        120
+#define SCANLINE_GRAD_H                 25
 
 static int s_inputAudioDeviceId = 0;
 static int s_oscListenPort = 9010;
@@ -46,7 +47,6 @@ void ofApplication::setup(){
     
     // Renderer
     ofSetVerticalSync(true);
-    ofSetFrameRate(60);
     ofEnableSmoothing();
     ofEnableArbTex();
     ofSetCircleResolution(32);
@@ -192,6 +192,10 @@ void ofApplication::update(){
     ofClear(0,0,0,0);
     drawSceneBackground();
     drawTrails();
+    // do this here so it goes on top of body
+    if (skMode == SkeletonDrawModeOldComputer){
+        drawScanLine();
+    }
     mainFbo.end();
 }
 
@@ -409,15 +413,6 @@ void ofApplication::drawShapeSkeletons()
     }
     
 #endif
-    
-    if (skMode == SkeletonDrawModeOldComputer)
-    {
-        ofSetColor(0, 255, 0, 180);
-        float lineY = ofGetElapsedTimef()/SCANLINE_TIME;
-        lineY -= floorf(lineY);
-        lineY *= ofGetHeight();
-        ofLine(0, lineY, ofGetWidth(), lineY);
-    }
 }
 
 void ofApplication::drawShapeForLimb(ofxOpenNIUser & user, Limb limbNumber)
@@ -520,6 +515,41 @@ void ofApplication::drawShapeForTorso(ofxOpenNIUser &user)
     ofBox(0, 0, 0, 1);
     
     ofPopMatrix();
+}
+
+void ofApplication::drawScanLine()
+{
+    // draw the scanline
+    ofEnableAlphaBlending();
+    ofFill();
+    ofSetColor(255,255,255);
+
+    float lineY = ofGetElapsedTimef()/SCANLINE_TIME;
+    lineY -= floorf(lineY);
+    lineY *= ofGetHeight();
+    
+    float w = ofGetWidth();
+    
+	GLfloat verts[] = {
+		0,lineY-SCANLINE_GRAD_H,
+		w,lineY-SCANLINE_GRAD_H,
+		w,lineY,
+		0,lineY
+	};
+    
+    ofFloatColor colors[] = {
+        ofFloatColor(0,0,0,0),
+        ofFloatColor(0,0,0,0),
+        ofFloatColor(0, 1, 0, 0.75f),
+        ofFloatColor(0, 1, 0, 0.75f)
+    };
+	
+	glEnableClientState( GL_COLOR_ARRAY );
+    glColorPointer(4, GL_FLOAT, sizeof(ofFloatColor), colors);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glVertexPointer(2, GL_FLOAT, 0, verts );
+	glDrawArrays( GL_TRIANGLE_FAN, 0, 4 );
+	glDisableClientState( GL_COLOR_ARRAY );
 }
 
 
