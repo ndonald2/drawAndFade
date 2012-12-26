@@ -111,7 +111,7 @@ void ofApplication::setup(){
     audioSensitivity = 1.0f;
     
     ofxAudioAnalyzer::Settings audioSettings;
-    audioSettings.stereo = true;
+    audioSettings.stereo = false;
     audioSettings.inputDeviceId = s_inputAudioDeviceId;
     audioSettings.bufferSize = 512;
     audioAnalyzer.setup(audioSettings);
@@ -401,7 +401,7 @@ void ofApplication::drawShapeSkeletons()
         // centered rotating cube
         float spinDegrees = ((elapsedPhase*0.1 + audSizeScale)/(2.0*M_PI))*360;
         ofPushMatrix();
-        ofTranslate(ofGetWindowSize()/2.0f);
+        ofTranslate(ofGetMouseX(), ofGetMouseY());
         ofScale(audSizeScale, audSizeScale, audSizeScale);
         ofRotateY(spinDegrees);
         ofBox(0, 0, 80);
