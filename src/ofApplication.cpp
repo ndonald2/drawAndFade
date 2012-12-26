@@ -213,7 +213,12 @@ void ofApplication::draw(){
         kinectOpenNI.drawSkeletons(0, 0, ofGetWidth(), ofGetHeight());
 #endif
         
-        ofSetColor(0);
+        float debugBrightness = 0;
+        if (skMode == SkeletonDrawModeOldComputer){
+            debugBrightness = 255;
+        }
+        
+        ofSetColor(debugBrightness);
         stringstream ss;
         ss << setprecision(2);
         ss << "Audio Signal Energy: " << audioAnalyzer.getSignalEnergy();
@@ -339,6 +344,7 @@ void ofApplication::drawShapeSkeletons()
         glEnable(GL_DEPTH_TEST);
     }
     
+#ifdef USE_KINECT
     for (int u=0; u<kinectOpenNI.getNumTrackedUsers(); u++){
         
         ofxOpenNIUser & user = kinectOpenNI.getTrackedUser(u);
@@ -376,6 +382,33 @@ void ofApplication::drawShapeSkeletons()
             }
         }
     }
+#else
+    
+    if (skMode == SkeletonDrawModePencil)
+    {
+       // something to debug here?
+    }
+    else if (skMode == SkeletonDrawModeOldComputer)
+    {        
+        audSizeScale = 1.0f + (powf(audioLowEnergy,1.75f)*0.2);
+        audColorScale = powf(audioHiEnergy,1.75f);
+        
+        // green outline
+        ofColor lineColor = ofColor(60,65,60);
+        lineColor.lerp(ofColor(0,255,0), CLAMP(audColorScale, 0, 1));
+        ofSetColor(lineColor);
+        
+        // centered rotating cube
+        float spinDegrees = ((elapsedPhase*0.1 + audSizeScale)/(2.0*M_PI))*360;
+        ofPushMatrix();
+        ofTranslate(ofGetWindowSize()/2.0f);
+        ofScale(audSizeScale, audSizeScale, audSizeScale);
+        ofRotateY(spinDegrees);
+        ofBox(0, 0, 80);
+        ofPopMatrix();
+    }
+    
+#endif
     
     if (skMode == SkeletonDrawModeOldComputer)
     {
