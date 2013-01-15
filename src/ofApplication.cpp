@@ -439,7 +439,7 @@ void ofApplication::drawShapeForLimb(ofxOpenNIUser & user, Limb limbNumber)
     }
     
     if (limbNumber == LIMB_NECK){
-        length = limbStart.distance(limbEnd)*0.5;
+        length = limbStart.distance(limbEnd)*0.4;
         center = user.getJoint(JOINT_HEAD).getProjectivePosition()*screenNormScale;
         drawSize.x = ofMap(zFactor,500,3500,0.11,0.01,true)*ofGetWidth();
         drawSize.y = drawSize.x*1.66f;
@@ -471,13 +471,15 @@ void ofApplication::drawShapeForLimb(ofxOpenNIUser & user, Limb limbNumber)
 
         ofTranslate(center);
         ofRotateZ(angle);
-        if (limbNumber == LIMB_NECK){
-            float spinDegrees = ((elapsedPhase*0.1 + audSizeScale)/(2.0*M_PI))*360;
-            ofRotateY(spinDegrees);
-        }
         
         ofScale(drawSize.x, drawSize.y, drawSize.x);
-        ofScale(audSizeScale, audSizeScale, audSizeScale);
+        
+        if (limbNumber == LIMB_NECK){
+            ofScale(audSizeScale, audSizeScale, audSizeScale);
+        }
+        else{
+            ofScale(audSizeScale, 1, audSizeScale);
+        }
         
         ofBox(0, 0, 0, 1);
     }
@@ -508,10 +510,12 @@ void ofApplication::drawShapeForTorso(ofxOpenNIUser &user)
     
     ofPushMatrix();
     ofTranslate(cc.x, cc.y);
-    ofRotateZ(bodyAngle);
-    
+
     ofScale(bodySize.x, bodySize.y, bodySize.x);
-    ofScale(audSizeScale, audSizeScale, audSizeScale);
+    ofScale(audSizeScale, 1, audSizeScale);
+    
+    ofRotateZ(bodyAngle);
+
     
     ofBox(0, 0, 0, 1);
     
