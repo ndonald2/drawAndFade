@@ -168,7 +168,7 @@ void ofApplication::update(){
     
     float elapsedTime = ofGetElapsedTimef();
 
-    audioLowEnergy = ofMap(audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity, 0.15f, 1.0f, 0.0f, 1.0f, true);
+    audioLowEnergy = ofMap(audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_LOW)*audioSensitivity, 0.15f, 1.5f, 0.0f, 1.0f, true);
     audioMidEnergy = ofMap(audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_MID)*audioSensitivity, 0.1f, 1.25f, 0.0f, 1.0f, true);
     audioHiEnergy = ofMap(audioAnalyzer.getSignalEnergyInRegion(AA_FREQ_REGION_HIGH)*audioSensitivity, 0.05f, 0.8f, 0.0f, 1.0f, true);
     audioHiPSF = ofMap(audioAnalyzer.getPSFinRegion(AA_FREQ_REGION_HIGH)*audioSensitivity, 0.3f, 4.0f, 0.0f, 1.0f, true);
@@ -462,7 +462,7 @@ void ofApplication::drawShapeForLimb(ofxOpenNIUser & user, Limb limbNumber)
         
         for (int c=0; c<SKEL_NUM_CIRCLES_PER_LIMB; c++){
             float currentAngle = ofRandom(0, 2*M_PI);
-            ofPoint currentOffset = c == -2 ? ofVec2f() : ofVec2f(cosf(currentAngle), sinf(currentAngle)).normalized()*drawSize.y*CLAMP((audOffsetScale*0.4 + 0.04f),0,0.25f);
+            ofPoint currentOffset = c == -2 ? ofVec2f() : ofVec2f(cosf(currentAngle), sinf(currentAngle)).normalized()*drawSize.y*CLAMP((audOffsetScale*0.2 + 0.04f),0,0.25f);
             ofEllipse(currentOffset, drawSize.x, drawSize.y);
         }
     }
@@ -477,9 +477,7 @@ void ofApplication::drawShapeForLimb(ofxOpenNIUser & user, Limb limbNumber)
         }
         
         ofScale(drawSize.x, drawSize.y, drawSize.x);
-        if (limbNumber == LIMB_NECK){
-            ofScale(audSizeScale, audSizeScale, audSizeScale);
-        }
+        ofScale(audSizeScale, audSizeScale, audSizeScale);
         
         ofBox(0, 0, 0, 1);
     }
@@ -513,6 +511,7 @@ void ofApplication::drawShapeForTorso(ofxOpenNIUser &user)
     ofRotateZ(bodyAngle);
     
     ofScale(bodySize.x, bodySize.y, bodySize.x);
+    ofScale(audSizeScale, audSizeScale, audSizeScale);
     
     ofBox(0, 0, 0, 1);
     
