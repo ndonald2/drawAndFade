@@ -7,6 +7,7 @@
 #define PENCIL_MODE_TRAIL_DECAY         150
 #define OLDCOMP_MODE_TRAIL_DECAY        120
 #define SCANLINE_GRAD_H                 25
+#define BOX_SCALE_MULT                  0.5
 
 static int s_inputAudioDeviceId = 0;
 static int s_oscListenPort = 9010;
@@ -147,7 +148,7 @@ void ofApplication::setup(){
     kinectOpenNI.setUseMaskTextureAllUsers(true);
     kinectOpenNI.setUsePointCloudsAllUsers(false);
     kinectOpenNI.setSkeletonProfile(XN_SKEL_PROFILE_ALL);
-    kinectOpenNI.setUserSmoothing(0.5);
+    kinectOpenNI.setUserSmoothing(0.3);
 #else
     // hands generator
     kinectOpenNI.addHandsGenerator();
@@ -365,7 +366,7 @@ void ofApplication::drawShapeSkeletons()
             else if (skMode == SkeletonDrawModeOldComputer)
             {
                 
-                audSizeScale = 1.0f + (powf(audioLowEnergy,1.75f)*0.2);
+                audSizeScale = 1.0f + (powf(audioLowEnergy,1.75f)*BOX_SCALE_MULT);
                 audColorScale = powf(audioHiEnergy,1.75f);
                 
                 // green outline
@@ -461,7 +462,7 @@ void ofApplication::drawShapeForLimb(ofxOpenNIUser & user, Limb limbNumber)
         
         for (int c=0; c<SKEL_NUM_CIRCLES_PER_LIMB; c++){
             float currentAngle = ofRandom(0, 2*M_PI);
-            ofPoint currentOffset = c == -2 ? ofVec2f() : ofVec2f(cosf(currentAngle), sinf(currentAngle)).normalized()*drawSize.y*CLAMP((audOffsetScale*0.25 + 0.01f),0,0.25f);
+            ofPoint currentOffset = c == -2 ? ofVec2f() : ofVec2f(cosf(currentAngle), sinf(currentAngle)).normalized()*drawSize.y*CLAMP((audOffsetScale*0.4 + 0.04f),0,0.25f);
             ofEllipse(currentOffset, drawSize.x, drawSize.y);
         }
     }
@@ -476,7 +477,9 @@ void ofApplication::drawShapeForLimb(ofxOpenNIUser & user, Limb limbNumber)
         }
         
         ofScale(drawSize.x, drawSize.y, drawSize.x);
-        ofScale(audSizeScale, audSizeScale, audSizeScale);
+        if (limbNumber == LIMB_NECK){
+            ofScale(audSizeScale, audSizeScale, audSizeScale);
+        }
         
         ofBox(0, 0, 0, 1);
     }
@@ -510,7 +513,6 @@ void ofApplication::drawShapeForTorso(ofxOpenNIUser &user)
     ofRotateZ(bodyAngle);
     
     ofScale(bodySize.x, bodySize.y, bodySize.x);
-    ofScale(audSizeScale, audSizeScale, audSizeScale);
     
     ofBox(0, 0, 0, 1);
     
